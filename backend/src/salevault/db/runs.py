@@ -7,7 +7,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -16,7 +16,7 @@ from salevault.db.models import RunItem, RunPage, ScrapeRun, Site
 from salevault.db.types import utcnow
 from salevault.domain.models import CategoryNode, Gender, ProductRecord
 from salevault.scraper.base import PageResult, Segment, SiteInfo
-from salevault.scraper.runner import ResumeState, SegmentPlan
+from salevault.scraper.runner import TOP_SIZE, ResumeState, SegmentPlan
 
 log = logging.getLogger(__name__)
 
@@ -81,7 +81,7 @@ class RunRepository:
             return run.id
 
     def resume(
-        self, site: SiteInfo, *, trigger: str, pid: int | None = None
+        self, site: SiteInfo, *, trigger: str, pid: int | None = None, with_items: bool = True
     ) -> tuple[int, ResumeState]:
         """Reopen the site's latest failed or cancelled run and load what it already has."""
         with session_scope(self._factory) as session:
@@ -97,7 +97,7 @@ class RunRepository:
                 raise NothingToResumeError(
                     f"No interrupted run of {site.code} to resume; start a new one instead"
                 )
-            state = _load_resume_state(session, run)
+            state = _load_resume_state(session, run, with_items=with_items)
             run.status = "running"
             run.trigger = trigger
             run.pid = pid or os.getpid()
@@ -281,28 +281,57 @@ def _ensure_site(session: Session, info: SiteInfo) -> Site:
     return site
 
 
-def _load_resume_state(session: Session, run: ScrapeRun) -> ResumeState:
+def _load_resume_state(session: Session, run: ScrapeRun, *, with_items: bool) -> ResumeState:
+    """Rebuild a run's progress from staging; summaries come from SQL so that resuming a
+    140k-item run does not parse every staged record."""
     plan = tuple(SegmentPlan.from_json(d) for d in json.loads(run.segments_json or "[]"))
     done = {
         (p.segment_key, p.page): tuple(json.loads(p.item_ids_json))
         for p in session.scalars(select(RunPage).where(RunPage.run_id == run.id))
     }
-    items: dict[str, ProductRecord] = {}
-    genders: dict[str, Gender] = {}
-    rows = session.execute(
-        select(RunItem.external_id, RunItem.gender_mask, RunItem.record_json).where(
-            RunItem.run_id == run.id
+    of_run = RunItem.run_id == run.id
+    genders = {
+        external_id: Gender(mask)
+        for external_id, mask in session.execute(
+            select(RunItem.external_id, RunItem.gender_mask).where(of_run)
         )
+    }
+    discount = func.json_extract(RunItem.record_json, "$.discount_pct")
+    savings = func.json_extract(RunItem.record_json, "$.savings_minor")
+    discount_counts = {
+        int(pct): n
+        for pct, n in session.execute(
+            select(discount, func.count()).where(of_run).group_by(discount)
+        )
+        if pct is not None
+    }
+    top = [
+        ProductRecord.model_validate_json(record_json)
+        for record_json in session.scalars(
+            select(RunItem.record_json)
+            .where(of_run)
+            .order_by(discount.desc(), savings.desc(), RunItem.external_id.desc())
+            .limit(TOP_SIZE)
+        )
+    ]
+    items = (
+        {
+            external_id: ProductRecord.model_validate_json(record_json)
+            for external_id, record_json in session.execute(
+                select(RunItem.external_id, RunItem.record_json).where(of_run)
+            )
+        }
+        if with_items
+        else None
     )
-    for external_id, mask, record_json in rows:
-        items[external_id] = ProductRecord.model_validate_json(record_json)
-        genders[external_id] = Gender(mask)
     return ResumeState(
         expected_total=run.expected_total or 0,
         plan=plan,
         done_pages=done,
-        items=items,
         genders=genders,
+        discount_counts=discount_counts,
+        top=top,
+        items=items,
     )
 
 

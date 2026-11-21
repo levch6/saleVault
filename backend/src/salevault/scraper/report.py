@@ -1,5 +1,7 @@
 """Console output for scrape runs: live progress and the final summary (Rich)."""
 
+from collections.abc import Iterable
+
 from rich.console import Console
 from rich.progress import (
     BarColumn,
@@ -94,8 +96,8 @@ def gender_label(mask: Gender) -> str:
     return "+".join(code for code, flag in labels if mask & flag) or "-"
 
 
-def top_discounts(items: dict[str, ProductRecord], n: int) -> list[ProductRecord]:
-    return sorted(items.values(), key=lambda p: (-p.discount_pct, -p.savings_minor))[:n]
+def top_discounts(items: Iterable[ProductRecord], n: int) -> list[ProductRecord]:
+    return sorted(items, key=lambda p: (-p.discount_pct, -p.savings_minor))[:n]
 
 
 def render_summary(console: Console, result: ScrapeResult, *, top: int = 20) -> None:
@@ -111,7 +113,7 @@ def render_summary(console: Console, result: ScrapeResult, *, top: int = 20) -> 
     stats.add_row("Duration", f"{duration / 60:.1f} min")
     stats.add_row(
         "Items",
-        f"{len(result.items):,} unique of {result.expected_total:,} expected "
+        f"{result.item_count:,} unique of {result.expected_total:,} expected "
         f"({result.completeness:.1%})",
     )
     stats.add_row("Requests", f"{result.requests:,} (retries: {result.retries})")
@@ -133,7 +135,7 @@ def render_summary(console: Console, result: ScrapeResult, *, top: int = 20) -> 
     buckets.add_column("Discount")
     buckets.add_column("Items", justify="right")
     for low, high in DISCOUNT_BUCKETS:
-        n = sum(1 for p in result.items.values() if low <= p.discount_pct <= high)
+        n = sum(count for pct, count in result.discount_counts.items() if low <= pct <= high)
         label = f">= {low}%" if high == 100 else f"{low}-{high}%"
         buckets.add_row(label, f"{n:,}")
     console.print(buckets)
@@ -141,7 +143,7 @@ def render_summary(console: Console, result: ScrapeResult, *, top: int = 20) -> 
     best = Table(title=f"Top {top} discounts")
     for col in ("Disc", "Gender", "Brand", "Name", "Price", "Was", "In stock"):
         best.add_column(col, justify="right" if col in ("Disc", "Price", "Was") else "left")
-    for p in top_discounts(result.items, top):
+    for p in top_discounts(result.top, top):
         in_stock = ", ".join(s.label for s in p.sizes if s.in_stock) or "-"
         best.add_row(
             f"-{p.discount_pct}%",

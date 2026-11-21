@@ -58,7 +58,8 @@ async def execute_run(
     """
     repo = RunRepository(factory)
     if resume:
-        run_id, state = repo.resume(site, trigger=trigger)
+        keep_items = options.keep_items if options is not None else True
+        run_id, state = repo.resume(site, trigger=trigger, with_items=keep_items)
         log.info("Resuming run #%d of %s", run_id, site.code)
     else:
         run_id, state = repo.start(site, trigger=trigger), None

@@ -1,10 +1,11 @@
 """Run lifecycle for one site: warm-up, segment planning, page fetching, completeness check."""
 
 import asyncio
+import heapq
 import logging
 import math
 import random
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -46,6 +47,12 @@ class RunOptions:
     """Debug limit; a limited run is never considered complete."""
     segment_completeness: float = 0.98
     total_completeness: float = 0.99
+    keep_items: bool = True
+    """Keep every normalized item in memory (dry runs, JSONL export). Persisted runs don't need
+    it: items are staged in the DB, and the summary uses the running top and histogram."""
+
+
+TOP_SIZE = 50
 
 
 @dataclass(frozen=True, slots=True)
@@ -95,8 +102,12 @@ class ResumeState:
     plan: tuple[SegmentPlan, ...]
     done_pages: Mapping[tuple[str, int], Sequence[str]]
     """(segment key, page) -> ids of the items on that page."""
-    items: Mapping[str, ProductRecord]
     genders: Mapping[str, Gender]
+    """Every staged item id with its gender bits."""
+    discount_counts: Mapping[int, int] = field(default_factory=dict)
+    top: Sequence[ProductRecord] = ()
+    items: Mapping[str, ProductRecord] | None = None
+    """Only loaded when the run keeps items in memory."""
 
 
 class RunSink(Protocol):
@@ -158,8 +169,13 @@ class ScrapeResult:
     started_at: datetime
     finished_at: datetime
     expected_total: int
-    items: dict[str, ProductRecord]
+    item_count: int
     genders: dict[str, Gender]
+    discount_counts: dict[int, int]
+    """Unique items per discount percent."""
+    top: list[ProductRecord]
+    """Biggest discounts first (at most TOP_SIZE)."""
+    items: dict[str, ProductRecord] | None
     segments: list[SegmentReport]
     requests: int
     retries: int
@@ -170,7 +186,7 @@ class ScrapeResult:
 
     @property
     def completeness(self) -> float:
-        return 1.0 if self.expected_total == 0 else len(self.items) / self.expected_total
+        return 1.0 if self.expected_total == 0 else self.item_count / self.expected_total
 
     @property
     def complete(self) -> bool:
@@ -183,22 +199,48 @@ class ScrapeResult:
 
 @dataclass(slots=True)
 class _Collector:
+    keep_items: bool = True
     items: dict[str, ProductRecord] = field(default_factory=dict)
     genders: dict[str, Gender] = field(default_factory=dict)
     per_segment: defaultdict[str, set[str]] = field(default_factory=lambda: defaultdict(set))
     invalid: int = 0
+    discount_counts: Counter[int] = field(default_factory=Counter)
+    _top: list[tuple[int, int, str, ProductRecord]] = field(default_factory=list)
 
     def add(self, segment: Segment, gender: Gender, page: PageResult) -> None:
         seen = self.per_segment[segment.key]
         self.invalid += page.invalid_items
         for item in page.items:
-            self.items[item.external_id] = item
+            if item.external_id not in self.genders:
+                self._count(item)
+            if self.keep_items:
+                self.items[item.external_id] = item
             self.genders[item.external_id] = self.genders.get(item.external_id, Gender(0)) | gender
             seen.add(item.external_id)
 
+    def _count(self, item: ProductRecord) -> None:
+        self.discount_counts[item.discount_pct] += 1
+        entry = (item.discount_pct, item.savings_minor, item.external_id, item)
+        if len(self._top) < TOP_SIZE:
+            heapq.heappush(self._top, entry)
+        elif entry[:3] > self._top[0][:3]:
+            heapq.heapreplace(self._top, entry)
+
+    @property
+    def top(self) -> list[ProductRecord]:
+        return [e[3] for e in sorted(self._top, key=lambda e: e[:3], reverse=True)]
+
     def seed(self, resume: ResumeState) -> None:
-        self.items.update(resume.items)
         self.genders.update(resume.genders)
+        self.discount_counts.update(resume.discount_counts)
+        for item in resume.top:
+            entry = (item.discount_pct, item.savings_minor, item.external_id, item)
+            if len(self._top) < TOP_SIZE:
+                heapq.heappush(self._top, entry)
+            elif entry[:3] > self._top[0][:3]:
+                heapq.heapreplace(self._top, entry)
+        if self.keep_items and resume.items:
+            self.items.update(resume.items)
         for (key, _page), ids in resume.done_pages.items():
             self.per_segment[key].update(ids)
 
@@ -234,7 +276,7 @@ class ScrapeRunner:
         started = datetime.now(UTC)
         await self._adapter.warm_up()
 
-        collector = _Collector()
+        collector = _Collector(keep_items=self._opts.keep_items)
         if resume is None:
             expected_total, plan = await self._plan(collector)
             done: set[tuple[str, int]] = {(sp.segment.key, 1) for sp in plan}
@@ -292,8 +334,11 @@ class ScrapeRunner:
             started_at=started,
             finished_at=datetime.now(UTC),
             expected_total=expected_total,
-            items=collector.items,
+            item_count=len(collector.genders),
             genders=collector.genders,
+            discount_counts=dict(collector.discount_counts),
+            top=collector.top,
+            items=collector.items if self._opts.keep_items else None,
             segments=[self._report(sp, collector) for sp in plan],
             requests=self._requests,
             retries=self._retries,
