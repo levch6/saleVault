@@ -6,7 +6,7 @@ Only want to run the app? [Running with Docker](guides/docker.md) needs nothing 
 
 ## 1. Check the requirements
 
-- Linux, or WSL2 on Windows 11. The browser transport opens a regular Chromium window; on WSL2 it appears through WSLg.
+- Linux, or WSL2 on Windows 11 (clone the repository inside WSL). The browser transport opens a regular Chromium window; on WSL2 it appears through WSLg.
 - [uv](https://docs.astral.sh/uv/) (installs Python 3.15 for the project by itself).
 - Node.js 26 (see `.node-version`; [fnm](https://github.com/Schniz/fnm) picks it up) with [pnpm](https://pnpm.io/) 12.
 - [just](https://just.systems/), the task runner used for every project command.

@@ -18,6 +18,33 @@ setup: && hooks
     cd {{ backend }} && uv sync
     cd {{ backend }} && uv run playwright install chromium
     cd {{ frontend }} && pnpm install
+    -just links
+
+# Check that the skill links in .agents/ and .claude/ work (a checkout without symlink support,
+# for example on Windows outside WSL, turns them into small text files)
+links:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    broken=()
+    while IFS= read -r link; do
+        [ -d "$link" ] || broken+=("$link")
+    done < <(git ls-files -s | awk '$1 == "120000" {print $4}')
+    if (( ${#broken[@]} )); then
+        echo "These skill links do not work: ${broken[*]}" >&2
+        echo "On Windows, work inside WSL, or enable symlinks (Developer Mode, then" >&2
+        echo "'git config core.symlinks true') and run 'just relink'. The app works either way." >&2
+        exit 1
+    fi
+    echo "Skill links OK"
+
+# Restore the skill links after enabling symlinks (touches only the link paths)
+relink:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    git ls-files -s | awk '$1 == "120000" {print $4}' | while IFS= read -r link; do
+        rm -f "$link" && git checkout -- "$link"
+    done
+    just links
 
 # Install the git hooks and build their tools (prek; gitleaks and actionlint take a minute once)
 hooks:

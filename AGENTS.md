@@ -91,6 +91,7 @@ This file is the shared brief for every coding agent. Tool-specific additions li
 
 - Stopping dev servers: `pkill -f 'salevault serve'` also matches the shell that runs it and kills that very command (exit 144). Use `fuser -k 8000/tcp 5173/tcp`.
 - Checking the UI in a browser: follow the `check-the-ui` skill (it runs on a copy of the data and never starts a scrape).
+- The nine skill links in `.agents/skills/` and `.claude/skills/` are symlinks (Claude Code reads only `.claude/skills/`; other agents read `.agents/skills/`). A checkout without symlink support (Windows outside WSL) turns them into text files: `just links` checks them (`just setup` warns), `just relink` restores them after `git config core.symlinks true`. Add a new link with `ln -s`, never as a copy.
 
 ## Conventions
 

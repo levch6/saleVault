@@ -9,7 +9,7 @@ saleVault is a personal project maintained in spare time. Bug reports, ideas and
 
 ## Pull requests
 
-1. Run `just setup` once; it also installs the git hooks.
+1. Run `just setup` once; it also installs the git hooks. On Windows, work inside WSL: the skill folders for coding agents are symbolic links (see [symbolic links on Windows](docs/guides/development.md#symbolic-links-on-windows)).
 2. Keep a pull request focused on one change, and update `docs/` in the same pull request when behavior changes.
 3. `just check` must pass (CI runs the same).
 4. Commit messages are one line in Conventional Commits form, for example `feat(scraper): add price segmentation`; the commit-msg hook checks it. See [development](docs/guides/development.md#conventions) for the details.

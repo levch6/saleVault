@@ -25,6 +25,8 @@ Run from the repository root. `just` without arguments lists them.
 | `just gen-api` | regenerate the frontend API types from the OpenAPI schema |
 | `just hooks` | install the git hooks and build their tools (gitleaks, actionlint) |
 | `just hooks-update` | bump the pinned revisions of the remote hooks (releases older than 7 days) |
+| `just links` | check that the skill links in `.agents/` and `.claude/` work (a checkout without symlink support breaks them) |
+| `just relink` | check the skill links out again after enabling symlinks (`git config core.symlinks true`); other files are not touched |
 
 ## `salevault`
 
