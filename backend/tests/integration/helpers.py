@@ -20,8 +20,20 @@ def seed_run(
     status: str = "success",
     tree: Sequence[CategoryNode] | None = None,
 ) -> int:
-    repo = RunRepository(factory)
-    run_id = repo.start(site, trigger="cli")
+    run_id = RunRepository(factory).start(site, trigger="cli")
+    complete_run(factory, run_id, pages, status=status, tree=tree)
+    return run_id
+
+
+def complete_run(
+    factory: sessionmaker[Session],
+    run_id: int,
+    pages: Sequence[tuple[Gender, Sequence[ProductRecord]]],
+    *,
+    status: str = "success",
+    tree: Sequence[CategoryNode] | None = None,
+) -> None:
+    """Stage the pages of an already started run, merge it and finish it."""
     sink = DbRunSink(factory, run_id)
     if tree:
         sink.on_category_tree(tree)
@@ -30,8 +42,7 @@ def seed_run(
         sink.on_page(Segment(), page_no, gender, result)
     with session_scope(factory) as session:
         stats = finalize_run(session, run_id, deactivate=status == "success")
-    repo.finish(run_id, status, stats=stats.to_json())
-    return run_id
+    RunRepository(factory).finish(run_id, status, stats=stats.to_json())
 
 
 def product(

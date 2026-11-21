@@ -1,16 +1,23 @@
 from collections.abc import Iterator
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from salevault.api.app import create_app
+from salevault.catalog.queries import resolve_filter
+from salevault.catalog.schemas import ProductsQuery
 from salevault.config import Settings
+from salevault.db.engine import session_scope
+from salevault.db.models import Product
+from salevault.db.runs import RunRepository
 from salevault.domain.models import CategoryNode, Gender
-from salevault.scraper.sites.registry import PRM
-from tests.integration.helpers import product, seed_run
+from salevault.scraper.sites.registry import ANSWEAR_UA, PRM
+from tests.integration.helpers import complete_run, product, seed_run
 
 SITE = PRM.site_info
 
@@ -245,6 +252,32 @@ def test_facets_reflect_new_data(seeded: TestClient) -> None:
     )
 
     assert seeded.get("/api/facets").json()["total"] == before + 1, "cache is keyed by data version"
+
+
+def test_facets_follow_runs_that_finish_out_of_order(client: TestClient) -> None:
+    """ "All shops" from the UI starts both shops at once; the lower run id may finish last."""
+    factory = factory_of(client)
+    repo = RunRepository(factory)
+    first = repo.start(ANSWEAR_UA.site_info, trigger="ui")
+    second = repo.start(SITE, trigger="ui")
+    complete_run(factory, second, [(Gender.MEN, [product("p", 10, regular=20)])])
+    assert client.get("/api/facets").json()["total"] == 1
+
+    complete_run(
+        factory, first, [(Gender.MEN, [product("x", 10, regular=20), product("y", 10, regular=20)])]
+    )
+
+    assert client.get("/api/facets").json()["total"] == 3
+
+
+def test_flag_ids_beyond_the_sqlite_variable_limit(seeded: TestClient) -> None:
+    """A big run can mark more items new or cheaper than SQLite allows variables (32,766)."""
+    with session_scope(factory_of(seeded)) as session:
+        flt = resolve_filter(session, ProductsQuery(flags=["new"]))
+        many = replace(flt, flag_ids={"new": tuple(range(1, 40_001))})
+        count = session.scalar(select(func.count()).select_from(Product).where(*many.conditions()))
+
+    assert count == len(ids(seeded)), "every product id is in the list, all of them active"
 
 
 def test_product_detail(seeded: TestClient) -> None:

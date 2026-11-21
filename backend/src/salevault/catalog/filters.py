@@ -1,10 +1,11 @@
 """SQL conditions for catalog filters. Facets drop their own filter via `skip`."""
 
+import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Literal
 
-from sqlalchemy import ColumnElement, and_, exists, false, select
+from sqlalchemy import ColumnElement, and_, exists, false, func, select
 from sqlalchemy.orm import Session, aliased
 
 from salevault.catalog.schemas import GENDER_BITS, CatalogQuery
@@ -111,7 +112,7 @@ class CatalogFilter:
                 conds.append(Product.search_text.like(f"%{escape_like(word)}%", escape="\\"))
         for flag in set(q.flags):
             if flag in self.flag_ids:
-                conds.append(Product.id.in_(self.flag_ids[flag]))
+                conds.append(_id_in(self.flag_ids[flag]))
             elif flag == "favorite":
                 conds.append(exists().where(Favorite.product_id == Product.id))
             else:
@@ -137,6 +138,13 @@ class CatalogFilter:
             Product.last_price_change_run_id.in_(runs),
             Product.price_minor < Product.prev_price_minor,
         )
+
+
+def _id_in(ids: Sequence[int]) -> ColumnElement[bool]:
+    """`Product.id IN ids` with the ids bound as one JSON value: SQLite allows only 32,766
+    variables per statement, and a big run can mark more items new or cheaper than that."""
+    values = func.json_each(json.dumps(list(ids))).table_valued("value")
+    return Product.id.in_(select(values.c.value))
 
 
 def _has_size_in_stock(labels: Sequence[str]) -> ColumnElement[bool]:

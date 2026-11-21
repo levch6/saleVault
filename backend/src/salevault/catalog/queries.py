@@ -168,14 +168,18 @@ facet_cache = _FacetCache()
 
 def data_version(session: Session) -> tuple[object, ...]:
     """Changes whenever anything that facets depend on changes."""
-    last_run = session.scalar(
-        select(func.max(ScrapeRun.id)).where(ScrapeRun.status.in_(("success", "partial")))
-    )
+    # Count and latest finish time, not max(id): runs started together ("All shops") finish in
+    # any order, and a run with a lower id finishing last must still move the version.
+    finished, last_finished = session.execute(
+        select(func.count(), func.max(ScrapeRun.finished_at)).where(
+            ScrapeRun.status.in_(("success", "partial"))
+        )
+    ).one()
     fav_count, fav_last = session.execute(
         select(func.count(), func.max(Favorite.added_at)).select_from(Favorite)
     ).one()
     sizes = session.scalar(select(Setting.value_json).where(Setting.key == MY_SIZES_KEY))
-    return (last_run, fav_count, fav_last, sizes)
+    return (finished, last_finished, fav_count, fav_last, sizes)
 
 
 def facets(session: Session, query: FacetsQuery) -> Facets:
