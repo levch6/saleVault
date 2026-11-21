@@ -43,6 +43,7 @@ Personal, local-only tool: scrapes the sale sections of fashion shops (PRM.com, 
 - TypeScript 7's npm package has no classic JS compiler API, so `openapi-typescript` is not a project dependency: `just gen-api` runs it through `pnpm dlx` with pinned `typescript@5.9`. Keep it that way until openapi-typescript supports TS 7.
 - `src/routeTree.gen.ts` and `src/api/schema.d.ts` are generated but committed (needed by `tsc` on a fresh clone) and excluded from Biome. Never edit them by hand.
 - pnpm 12 asks for approval of agent "skills" shipped by `@tanstack/react-router` and `@tanstack/router-plugin`. They are deliberately left unapproved; don't approve them without asking the user.
+- `frontend/pnpm-workspace.yaml` overrides `minimatch` to `^11.0.1` (security advisory; shadcn 4.23 -> ts-morph 26 pins 10.x). Remove it once shadcn depends on ts-morph >= 28.
 - shadcn's `cn` helper comes from the `cn` package (shadcn-ui/cn) via `@/lib/utils`. The shadcn CLI sometimes silently skips a component (it did for `sheet`); then write it from `pnpm dlx shadcn@latest view <name>`. Generated `src/components/ui/**` is not linted by Biome.
 - Catalog state lives in the URL (`frontend/src/lib/search.ts`); add new filters there, in `validateCatalogSearch`, and in the API query model together.
 - Filter EXISTS subqueries must use `aliased(...)` tables: facet queries join `product_sizes` / `product_categories` themselves and auto-correlation would break them.
