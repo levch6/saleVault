@@ -31,9 +31,17 @@ dev:
 start: build
     cd {{ backend }} && uv run salevault serve
 
-# Scrape a site's sale section (dry run until DB storage lands), e.g. `just scrape prm --top 50`
+# Scrape a site into the local DB, e.g. `just scrape prm`, `just scrape prm --resume`, `--dry-run`
 scrape site *args:
-    cd {{ backend }} && uv run salevault scrape {{ site }} --dry-run {{ args }}
+    cd {{ backend }} && uv run salevault scrape {{ site }} {{ args }}
+
+# Show recent scrape runs, e.g. `just runs --site prm`
+runs *args:
+    cd {{ backend }} && uv run salevault runs {{ args }}
+
+# Apply pending DB migrations (scrapes do it automatically)
+db-upgrade:
+    cd {{ backend }} && uv run salevault db upgrade
 
 # Build the frontend into frontend/dist
 build:

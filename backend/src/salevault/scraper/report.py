@@ -13,8 +13,18 @@ from rich.progress import (
 )
 from rich.table import Table
 
+from salevault.db.runs import RunRow
 from salevault.domain.models import Gender, ProductRecord
 from salevault.scraper.runner import ScrapeResult
+from salevault.scraper.service import RunOutcome
+
+STATUS_STYLES = {
+    "success": "green",
+    "partial": "yellow",
+    "failed": "red",
+    "cancelled": "dim",
+    "running": "cyan",
+}
 
 DISCOUNT_BUCKETS: tuple[tuple[int, int], ...] = (
     (70, 100),
@@ -143,3 +153,55 @@ def render_summary(console: Console, result: ScrapeResult, *, top: int = 20) -> 
             in_stock if len(in_stock) <= 24 else in_stock[:23] + "...",
         )
     console.print(best)
+
+
+def render_run_outcome(console: Console, outcome: RunOutcome) -> None:
+    s = outcome.stats
+    style = STATUS_STYLES.get(outcome.status, "")
+    table = Table(title=f"Run #{outcome.run_id}: catalog changes", show_header=False)
+    table.add_column(style="bold")
+    table.add_column(justify="right")
+    table.add_row("Status", f"[{style}]{outcome.status}[/]")
+    table.add_row("Items seen", f"{s.seen:,}")
+    table.add_row("New", f"{s.new:,}")
+    table.add_row("Price drops", f"{s.price_drops:,}")
+    table.add_row("Price increases", f"{s.price_ups:,}")
+    table.add_row("Back in sale", f"{s.returned:,}")
+    table.add_row("Not seen (grace period)", f"{s.missing:,}")
+    table.add_row("Removed from sale", f"{s.removed:,}")
+    console.print(table)
+    if outcome.status == "partial":
+        console.print("[yellow]Partial run: the catalog was updated, but nothing was removed.[/]")
+
+
+def render_runs(console: Console, rows: list[RunRow]) -> None:
+    if not rows:
+        console.print("No runs yet. Start one with [bold]just scrape prm[/].")
+        return
+    table = Table(title="Scrape runs")
+    for col in ("#", "Site", "Status", "Trigger", "Started", "Duration", "Items", "New", "Drops"):
+        table.add_column(col, justify="right" if col in ("#", "Items", "New", "Drops") else "left")
+    table.add_column("Removed", justify="right")
+    table.add_column("Error")
+    for r in rows:
+        stats = r.stats or {}
+        duration = (
+            f"{(r.finished_at - r.started_at).total_seconds() / 60:.1f} min"
+            if r.finished_at
+            else "-"
+        )
+        items = f"{r.items_seen:,}" + (f" / {r.expected_total:,}" if r.expected_total else "")
+        table.add_row(
+            str(r.id),
+            r.site,
+            f"[{STATUS_STYLES.get(r.status, '')}]{r.status}[/]",
+            r.trigger,
+            r.started_at.astimezone().strftime("%Y-%m-%d %H:%M"),
+            duration,
+            items,
+            str(stats.get("new", "-")),
+            str(stats.get("price_drops", "-")),
+            str(stats.get("removed", "-")),
+            (r.error or "")[:60],
+        )
+    console.print(table)
