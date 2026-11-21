@@ -1,6 +1,9 @@
 import type { QueryClient } from '@tanstack/react-query'
 import { createRootRouteWithContext, Link, Outlet } from '@tanstack/react-router'
 import { HealthStatus } from '@/components/health-status'
+import { RunControls } from '@/components/runs/run-controls'
+import { Toaster } from '@/components/ui/sonner'
+import { TooltipProvider } from '@/components/ui/tooltip'
 
 export interface RouterContext {
   queryClient: QueryClient
@@ -11,23 +14,47 @@ export const Route = createRootRouteWithContext<RouterContext>()({
   notFoundComponent: NotFound,
 })
 
+const NAV = [
+  { to: '/', label: 'Catalog' },
+  { to: '/favorites', label: 'Favorites' },
+  { to: '/runs', label: 'Runs' },
+  { to: '/settings', label: 'Settings' },
+] as const
+
 function RootLayout() {
   return (
-    <div className="min-h-svh">
-      <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-screen-2xl items-center gap-6 px-4">
-          <Link to="/" className="font-heading text-lg font-semibold tracking-tight">
-            saleVault
-          </Link>
-          <div className="ml-auto">
-            <HealthStatus />
+    <TooltipProvider delayDuration={200}>
+      <div className="min-h-svh">
+        <header className="sticky top-0 z-30 border-b bg-background/85 backdrop-blur">
+          <div className="mx-auto flex max-w-screen-2xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2.5">
+            <Link to="/" className="font-heading text-lg font-semibold tracking-tight">
+              saleVault
+            </Link>
+            <nav className="flex gap-1 text-sm">
+              {NAV.map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  activeOptions={{ exact: item.to === '/', includeSearch: false }}
+                  className="rounded-md px-2.5 py-1.5 text-muted-foreground transition hover:text-foreground"
+                  activeProps={{ className: 'bg-muted text-foreground font-medium' }}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+            <div className="ml-auto flex items-center gap-3">
+              <RunControls />
+              <HealthStatus compact />
+            </div>
           </div>
-        </div>
-      </header>
-      <main className="mx-auto max-w-screen-2xl px-4 py-6">
-        <Outlet />
-      </main>
-    </div>
+        </header>
+        <main className="mx-auto max-w-screen-2xl px-4 py-5">
+          <Outlet />
+        </main>
+        <Toaster position="bottom-right" richColors closeButton />
+      </div>
+    </TooltipProvider>
   )
 }
 

@@ -2,8 +2,8 @@ import { useQuery } from '@tanstack/react-query'
 import { healthQuery } from '@/api/queries'
 import { cn } from '@/lib/utils'
 
-/** Small header indicator: is the backend reachable, and which version is it. */
-export function HealthStatus() {
+/** Header indicator: is the backend reachable, and which version is it. */
+export function HealthStatus({ compact = false }: { compact?: boolean }) {
   const { data, isPending, isError } = useQuery(healthQuery)
 
   let label = 'Checking API...'
@@ -17,9 +17,9 @@ export function HealthStatus() {
   }
 
   return (
-    <output className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+    <output title={label} className="inline-flex items-center gap-2 text-sm text-muted-foreground">
       <span aria-hidden="true" className={cn('size-2 rounded-full', dot)} />
-      {label}
+      <span className={cn(compact && !isError && 'sr-only')}>{label}</span>
     </output>
   )
 }
