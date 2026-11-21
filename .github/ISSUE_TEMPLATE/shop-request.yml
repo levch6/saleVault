@@ -1,0 +1,28 @@
+name: Request from a shop
+description: You represent a supported shop and want saleVault to change or drop support for it.
+title: "Shop request: "
+labels: ["shop request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for getting in touch. Requests from shops are handled first, and support for a shop is removed on request.
+  - type: input
+    id: shop
+    attributes:
+      label: Shop
+      description: The shop's name or website.
+    validations:
+      required: true
+  - type: textarea
+    id: request
+    attributes:
+      label: Your request
+      description: What would you like changed, or should support for your shop be removed?
+    validations:
+      required: true
+  - type: input
+    id: contact
+    attributes:
+      label: Contact (optional)
+      description: An address for a private reply, if you prefer one.

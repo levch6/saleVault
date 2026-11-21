@@ -62,7 +62,7 @@ repos:
         name: zizmor
         entry: uv run --project backend --no-sync zizmor --offline
         language: system
-        files: ^\.github/.*\.ya?ml$
+        files: ^\.github/(workflows/.*|dependabot)\.ya?ml$
       - id: markdown-ascii
         name: markdown is plain ascii
         entry: '[^\x00-\x7F]'
