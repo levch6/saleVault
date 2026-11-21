@@ -28,6 +28,8 @@ Personal, local-only tool: scrapes the sale sections of fashion shops (PRM.com, 
 - `just scrape prm [args]`: scrape a site into the DB; `--resume` continues an interrupted run, `--dry-run` only prints a summary, `--max-pages 1` for a quick smoke run, `--jsonl path` exports items
 - `just runs [--site prm]`: recent runs with status and catalog changes
 - `just db-upgrade`: apply migrations (scrapes do it automatically)
+- `just backup` / `just vacuum`: DB copy into `data/backups` (last 5) / compaction (also automatic after a run once free pages exceed 100 MB)
+- `just start` opens the browser once the server is healthy; `just shortcut` writes `saleVault.bat` to the Windows desktop (only run it when the user asks)
 - `just fmt`, `just build`, `just gen-api`
 - New migration: `cd backend && uv run alembic revision --autogenerate -m "..."`, then review the file in `src/salevault/db/migrations/versions/`
 - Live tests (hit the real site, open a browser window): `cd backend && uv run pytest -m live`
