@@ -81,7 +81,7 @@ export function ProductCard({
       <button
         type="button"
         onClick={() => onOpen(product.id)}
-        className="relative block aspect-[2/3] overflow-hidden bg-muted"
+        className="relative block aspect-[2/3] overflow-hidden bg-neutral-100"
         aria-label={`Open ${product.brand.name} ${product.name}`}
       >
         {product.image ? (
@@ -90,7 +90,7 @@ export function ProductCard({
             alt=""
             loading="lazy"
             decoding="async"
-            className="size-full object-cover transition duration-300 group-hover:scale-[1.03]"
+            className="size-full object-contain transition duration-300 group-hover:scale-[1.03]"
           />
         ) : null}
         <span className="absolute top-2 left-2 flex flex-col items-start gap-1">

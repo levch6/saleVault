@@ -81,8 +81,8 @@ function Detail({ product }: { product: ProductDetail }) {
       <div className="space-y-5 px-4 pb-6">
         {current ? (
           <div className="space-y-2">
-            <div className="relative overflow-hidden rounded-xl bg-muted">
-              <img src={current.full} alt="" className="aspect-[2/3] w-full object-cover" />
+            <div className="relative overflow-hidden rounded-xl bg-neutral-100">
+              <img src={current.full} alt="" className="aspect-[2/3] w-full object-contain" />
               <FavoriteButton
                 id={product.id}
                 active={product.is_favorite}
@@ -90,23 +90,24 @@ function Detail({ product }: { product: ProductDetail }) {
               />
             </div>
             {images.length > 1 ? (
-              <div className="flex gap-2 overflow-x-auto">
+              <div className="flex gap-2 overflow-x-auto p-1">
                 {images.map((image, i) => (
                   <button
                     key={image.thumb}
                     type="button"
                     onClick={() => setActive(i)}
                     aria-label={`Image ${i + 1}`}
+                    aria-current={i === active}
                     className={cn(
-                      'w-16 shrink-0 overflow-hidden rounded-md border-2',
-                      i === active ? 'border-primary' : 'border-transparent',
+                      'w-16 shrink-0 overflow-hidden rounded-md bg-neutral-100',
+                      i === active && 'ring-2 ring-primary ring-offset-2 ring-offset-background',
                     )}
                   >
                     <img
                       src={image.thumb}
                       alt=""
                       loading="lazy"
-                      className="aspect-[2/3] w-full object-cover"
+                      className="aspect-[2/3] w-full object-contain"
                     />
                   </button>
                 ))}
