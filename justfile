@@ -19,9 +19,13 @@ setup: && hooks
     cd {{ backend }} && uv run playwright install chromium
     cd {{ frontend }} && pnpm install
 
-# Install the git hooks: quick checks of staged files and the commit message format (prek)
+# Install the git hooks and build their tools (prek; gitleaks and actionlint take a minute once)
 hooks:
-    uv run --project {{ backend }} prek install
+    uv run --project {{ backend }} prek install --prepare-hooks
+
+# Bump the pinned revisions of the remote hooks (commit SHAs, releases older than 7 days)
+hooks-update:
+    uv run --project {{ backend }} prek update --freeze --cooldown-days 7
 
 # Backend on :8000 with reload + Vite on :5173; Ctrl+C (or a crash of either) stops both
 dev:

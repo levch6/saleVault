@@ -41,7 +41,7 @@ just test         # pytest + Vitest (offline)
 just fmt          # auto-format and safe fixes
 ```
 
-Git hooks (installed by `just setup`, or `just hooks`) run quick checks on the staged files, refuse anything under `.notes/` or `data/`, and check the commit message. If a hook rewrites files, stage them and commit again. Do not bypass hooks with `--no-verify`; fix what they report.
+Git hooks (installed by `just setup`, or `just hooks`) run quick checks on the staged files, scan the staged changes for secrets (gitleaks), lint workflow changes (actionlint), refuse anything under `.notes/` or `data/`, and check the commit message. gitleaks and actionlint are pinned to commit SHAs of their official hook repositories and built by prek on the first `just hooks` (about a minute, network needed once); `just hooks-update` moves the pins to releases older than 7 days. If a hook rewrites files, stage them and commit again. Do not bypass hooks with `--no-verify`; fix what they report.
 
 CI (`.github/workflows/check.yml`) runs `just check` and the UI build on every push to `main` and on pull requests. It never touches the network beyond installing packages.
 

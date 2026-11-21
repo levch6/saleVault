@@ -22,7 +22,8 @@ Run from the repository root. `just` without arguments lists them.
 | `just test` | pytest and Vitest (offline) |
 | `just fmt` | auto-format and apply safe fixes |
 | `just gen-api` | regenerate the frontend API types from the OpenAPI schema |
-| `just hooks` | install the git hooks |
+| `just hooks` | install the git hooks and build their tools (gitleaks, actionlint) |
+| `just hooks-update` | bump the pinned revisions of the remote hooks (releases older than 7 days) |
 
 ## `salevault`
 
