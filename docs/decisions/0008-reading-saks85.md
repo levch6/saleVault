@@ -34,3 +34,7 @@ OpenCart also serves every listing under its non-SEO URL, `index.php?route=produ
 - Size labels are shown without their size system (INT, IT, EUR, ...), like the shop's own size filter does.
 - Parsing the markup is more fragile than JSON. The card fields are validated with Pydantic models, a page with products but no item count fails the run, and more than 20% malformed cards stop it, with the parsed listing archived.
 - If the shop starts matching `&page=` in `robots.txt`, or refuses these requests, the shop is dropped rather than read another way.
+
+## Updates
+
+- **2026-11-21:** the first full run made 260 requests in 13 minutes with one worker (pages take longer to serve than estimated) and found 2,873 of the 2,873 items the shop reported, every segment complete, with no refusals.
