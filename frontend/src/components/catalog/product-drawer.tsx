@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { ExternalLinkIcon, InfoIcon } from 'lucide-react'
 import { useState } from 'react'
-import { productQuery } from '@/api/queries'
+import { productQuery, useSiteLabel } from '@/api/queries'
 import type { ProductDetail } from '@/api/types'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -63,6 +63,7 @@ function Detail({ product }: { product: ProductDetail }) {
   const [active, setActive] = useState(0)
   const current = images[active] ?? images[0]
   const sizes = [...product.size_details].sort((a, b) => compareSizes(a.label, b.label))
+  const site = useSiteLabel(product.site)
 
   return (
     <>
@@ -182,7 +183,7 @@ function Detail({ product }: { product: ProductDetail }) {
 
         <Button asChild className="w-full">
           <a href={product.url} target="_blank" rel="noreferrer">
-            Open on {product.site.toUpperCase()} <ExternalLinkIcon />
+            Open on {site.name} <ExternalLinkIcon />
           </a>
         </Button>
       </div>

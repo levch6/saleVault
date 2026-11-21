@@ -5,6 +5,7 @@ import {
   type QueryClient,
   queryOptions,
   useMutation,
+  useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
 import type { ApiCatalogQuery } from '@/lib/search'
@@ -213,4 +214,14 @@ export function useCancelRun() {
 
 export function runningSites(sites: readonly SiteOut[] | undefined): SiteOut[] {
   return (sites ?? []).filter((s) => s.latest?.status === 'running')
+}
+
+/** Shop display name, and whether shops should be labeled at all (only with 2+ shops in data). */
+export function useSiteLabel(code: string): { name: string; show: boolean } {
+  const { data } = useQuery(sitesQuery)
+  const withData = (data ?? []).filter((s) => s.active_products > 0)
+  return {
+    name: data?.find((s) => s.code === code)?.name ?? code,
+    show: withData.length > 1,
+  }
 }

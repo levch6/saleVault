@@ -1,6 +1,6 @@
 import { ExternalLinkIcon, StarIcon, TrendingDownIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { useToggleFavorite } from '@/api/queries'
+import { useSiteLabel, useToggleFavorite } from '@/api/queries'
 import type { ProductCard as Card } from '@/api/types'
 import { discountTone, formatPrice } from '@/lib/format'
 import { compareSizes } from '@/lib/sizes'
@@ -59,6 +59,7 @@ export function ProductCard({
   onOpen: (id: number) => void
   footer?: ReactNode
 }) {
+  const site = useSiteLabel(product.site)
   const inStock = product.sizes
     .filter((s) => s.in_stock)
     .sort((a, b) => compareSizes(a.label, b.label))
@@ -127,6 +128,11 @@ export function ProductCard({
             <ExternalLinkIcon className="size-4" />
           </a>
         </div>
+        {site.show ? (
+          <p className="-mt-1 text-[11px] tracking-wide text-muted-foreground uppercase">
+            {site.name}
+          </p>
+        ) : null}
         <p className="line-clamp-2 text-sm text-muted-foreground">{product.name}</p>
         {shown.length ? (
           <ul className="flex flex-wrap gap-1" aria-label="Sizes in stock">
