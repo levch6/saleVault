@@ -2,3 +2,8 @@
 # a DoS advisory fixed only in 11.0.1. Drop this once shadcn depends on ts-morph >= 28.
 overrides:
   minimatch: ^11.0.1
+permissions:
+  "@tanstack/react-router":
+    skills: true
+  "@tanstack/router-plugin":
+    skills: true

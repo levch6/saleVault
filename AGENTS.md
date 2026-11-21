@@ -14,7 +14,7 @@ This file is the shared brief for every coding agent. Tool-specific additions li
 - `backend/`: Python package `salevault` (scraper, db, api, cli).
 - `frontend/`: Vite + React SPA.
 - `data/`: runtime data (DB, browser profile, logs, raw dumps, backups). Gitignored.
-- `.agents/skills/`: project skills (Agent Skills format, one folder with a `SKILL.md` each): `add-a-shop`, `check-the-ui`, `merge-dependabot-prs`.
+- `.agents/skills/`: project skills (Agent Skills format, one folder with a `SKILL.md` each): `add-a-shop`, `check-the-ui`, `merge-dependabot-prs`; plus `react-router`, `router-plugin` and `router-query`, the skills TanStack ships in its npm packages (links into `frontend/.claude/skills/`, which pnpm maintains).
 - `.claude/`: Claude Code config (permissions, a guard hook, `skills/` symlinked to `.agents/skills/`).
 
 ## Stack
@@ -73,7 +73,7 @@ This file is the shared brief for every coding agent. Tool-specific additions li
 
 - TypeScript 7's npm package has no classic JS compiler API, so `openapi-typescript` is not a project dependency: `just gen-api` runs it through `pnpm dlx` with pinned `typescript@5.9`. Keep it that way until openapi-typescript supports TS 7.
 - `src/routeTree.gen.ts` and `src/api/schema.d.ts` are generated but committed (needed by `tsc` on a fresh clone) and excluded from Biome. Never edit them by hand.
-- pnpm 12 asks for approval of agent "skills" shipped by `@tanstack/react-router` and `@tanstack/router-plugin`. They are deliberately left unapproved; don't approve them without asking the user.
+- Package skills: the owner approved the agent skills of `@tanstack/react-router` and `@tanstack/router-plugin` (`permissions` in `frontend/pnpm-workspace.yaml`). `pnpm install` links them into `frontend/.claude/skills/` (gitignored there) at the installed version; `.agents/skills/` and `.claude/skills/` link to those folders, so the links resolve after `just setup`. Approve skills of any other package only when the user asks.
 - `frontend/pnpm-workspace.yaml` overrides `minimatch` to `^11.0.1` (security advisory; shadcn 4.23 -> ts-morph 26 pins 10.x). Remove it once shadcn depends on ts-morph >= 28.
 - shadcn's `cn` helper comes from the `cn` package (shadcn-ui/cn) via `@/lib/utils`. The shadcn CLI sometimes silently skips a component (it did for `sheet`); then write it from `pnpm dlx shadcn@latest view <name>`. Generated `src/components/ui/**` is not linted by Biome.
 - Catalog state lives in the URL (`frontend/src/lib/search.ts`); add new filters there, in `validateCatalogSearch`, and in the API query model together.

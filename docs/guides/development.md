@@ -103,7 +103,7 @@ uv run python scripts/bench_api.py <data-dir> [--runs 20]                # p50 /
 
 `AGENTS.md` is the brief for AI coding agents (Codex, Cursor, Copilot, Gemini CLI and others read it directly; `CLAUDE.md` imports it for Claude Code and adds that tool's specifics). Keep it in sync when commands, conventions or gotchas change.
 
-Repeatable procedures are skills in `.agents/skills/` (the open Agent Skills format: a folder with a `SKILL.md`): `add-a-shop`, `check-the-ui` and `merge-dependabot-prs`. `.claude/skills/` holds symlinks to them, so there is one copy.
+Repeatable procedures are skills in `.agents/skills/` (the open Agent Skills format: a folder with a `SKILL.md`): `add-a-shop`, `check-the-ui` and `merge-dependabot-prs`. `.claude/skills/` holds symlinks to them, so there is one copy. TanStack ships skills for its router in the npm packages; they are approved in `frontend/pnpm-workspace.yaml`, pnpm links them into `frontend/.claude/skills/` on install, and the root skill folders link `react-router`, `router-plugin` and `router-query` from there.
 
 ## Dependency updates
 
