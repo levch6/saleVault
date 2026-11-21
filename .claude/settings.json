@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(just check)",
+      "Bash(just lint)",
+      "Bash(just test)",
+      "Bash(just fmt)",
+      "Bash(just build)",
+      "Bash(just gen-api)",
+      "Bash(just runs *)",
+      "Bash(uv run pytest *)",
+      "Bash(uv run ruff *)",
+      "Bash(uv run mypy *)",
+      "Bash(pnpm exec biome *)",
+      "Bash(pnpm exec tsc *)",
+      "Bash(pnpm exec vitest *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)"
+    ],
+    "ask": [
+      "Bash(just scrape *)",
+      "Bash(uv run salevault scrape *)",
+      "Bash(uv run pytest -m live *)",
+      "Bash(just shortcut)",
+      "Bash(git push *)",
+      "Bash(gh pr merge *)",
+      "Bash(pnpm approve *)"
+    ],
+    "deny": [
+      "Read(./data/browser/**)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|NotebookEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

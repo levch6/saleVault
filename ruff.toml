@@ -1,0 +1,2 @@
+# Python outside backend/ (the Claude Code hook in .claude/) follows the backend ruff settings.
+extend = "backend/pyproject.toml"
