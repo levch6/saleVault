@@ -1,12 +1,24 @@
 import json
+from collections.abc import Iterator
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner
 
 from salevault import __version__
 from salevault.cli import app
+from salevault.config import get_settings
 
 runner = CliRunner()
+
+
+@pytest.fixture
+def data_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Path]:
+    """Point the app's data directory (DB, browser profiles) at a temp folder."""
+    monkeypatch.setenv("SALEVAULT_DATA_DIR", str(tmp_path))
+    get_settings.cache_clear()
+    yield tmp_path
+    get_settings.cache_clear()
 
 
 def test_version() -> None:
@@ -16,17 +28,33 @@ def test_version() -> None:
     assert result.stdout.strip() == __version__
 
 
-def test_scrape_requires_dry_run_until_storage_exists() -> None:
-    result = runner.invoke(app, ["scrape", "prm"])
-
-    assert result.exit_code == 2
-
-
 def test_scrape_rejects_unknown_sites() -> None:
     result = runner.invoke(app, ["scrape", "nope", "--dry-run"])
 
     assert result.exit_code == 2
     assert "Unknown site" in result.output
+
+
+def test_resume_cannot_be_a_dry_run() -> None:
+    result = runner.invoke(app, ["scrape", "prm", "--dry-run", "--resume"])
+
+    assert result.exit_code == 2
+    assert "--resume" in result.output
+
+
+def test_db_upgrade_creates_the_database(data_dir: Path) -> None:
+    result = runner.invoke(app, ["db", "upgrade"])
+
+    assert result.exit_code == 0, result.output
+    assert (data_dir / "salevault.db").is_file()
+    assert "is at revision" in " ".join(result.output.split())
+
+
+def test_runs_on_an_empty_database(data_dir: Path) -> None:
+    result = runner.invoke(app, ["runs"])
+
+    assert result.exit_code == 0, result.output
+    assert "No runs yet" in result.output
 
 
 def test_openapi_export(tmp_path: Path) -> None:
