@@ -2,12 +2,16 @@
 
 from collections.abc import Mapping
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 MAX_ID = 2**63 - 1
 """Largest integer SQLite stores; bigger ids or prices would overflow the driver (HTTP 500)."""
+MAX_PRICE = 100_000_000
+"""Whole currency units; far above any real price and far below an integer overflow."""
+Id = Annotated[int, Field(ge=1, le=MAX_ID)]
+
 
 GenderCode = Literal["men", "women", "home", "kids"]
 Flag = Literal["new", "price_drop", "favorite"]
@@ -34,14 +38,18 @@ class CatalogQuery(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    site: list[str] = Field(default_factory=list, description="Site codes, e.g. prm")
-    gender: list[GenderCode] = Field(default_factory=list)
-    category: list[int] = Field(default_factory=list, description="Category ids, any level")
-    brand: list[int] = Field(default_factory=list)
-    size: list[str] = Field(default_factory=list, description="Size labels in stock")
+    site: list[str] = Field(default_factory=list, max_length=20, description="Site codes, e.g. prm")
+    gender: list[GenderCode] = Field(default_factory=list, max_length=4)
+    category: list[Id] = Field(
+        default_factory=list, max_length=200, description="Category ids, any level"
+    )
+    brand: list[Id] = Field(default_factory=list, max_length=500)
+    size: list[str] = Field(
+        default_factory=list, max_length=200, description="Size labels in stock"
+    )
     my_sizes: bool = Field(False, description="Only items with one of my sizes in stock")
-    price_min: int | None = Field(None, ge=0)
-    price_max: int | None = Field(None, ge=0)
+    price_min: int | None = Field(None, ge=0, le=MAX_PRICE)
+    price_max: int | None = Field(None, ge=0, le=MAX_PRICE)
     discount_min: int | None = Field(None, ge=0, le=100)
     discount_max: int | None = Field(None, ge=0, le=100)
     q: str | None = Field(None, max_length=100, description="Words to find in brand or name")
@@ -59,7 +67,7 @@ class FacetsQuery(CatalogQuery):
 
 class ProductsQuery(CatalogQuery):
     sort: Sort = "discount_desc"
-    page: int = Field(1, ge=1)
+    page: int = Field(1, ge=1, le=100_000)
     page_size: int = Field(60, ge=1, le=120)
 
 

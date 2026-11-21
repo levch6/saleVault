@@ -1,11 +1,12 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Path, Query
 
 from salevault.api.deps import SessionDep
 from salevault.api.errors import ApiError, error_responses
 from salevault.catalog import queries
 from salevault.catalog.schemas import (
+    MAX_ID,
     Facets,
     FacetsQuery,
     ProductDetail,
@@ -29,7 +30,7 @@ def get_facets(query: Annotated[FacetsQuery, Query()], session: SessionDep) -> F
 
 
 @router.get("/products/{product_id}", responses=error_responses(404))
-def get_product(product_id: int, session: SessionDep) -> ProductDetail:
+def get_product(product_id: Annotated[int, Path(le=MAX_ID)], session: SessionDep) -> ProductDetail:
     detail = queries.product_detail(session, product_id)
     if detail is None:
         raise ApiError(404, "not_found", f"Product {product_id} not found")

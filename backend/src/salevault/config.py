@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     frontend_dist: Path = PROJECT_ROOT / "frontend" / "dist"
     host: str = "127.0.0.1"
     port: int = 8000
+    allowed_hosts: list[str] = ["localhost", "127.0.0.1"]
+    """Host names the API answers to. Anything else is refused, so a web page that points its
+    own domain at 127.0.0.1 (DNS rebinding) cannot use the local API."""
 
     @property
     def db_path(self) -> Path:

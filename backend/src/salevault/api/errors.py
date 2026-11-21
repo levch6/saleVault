@@ -1,13 +1,17 @@
 """Domain errors -> JSON `{"detail": ..., "code": ...}` responses."""
 
+import logging
 from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import OperationalError
 
 from salevault.api.launcher import LaunchError, RunNotRunningError
 from salevault.api.schemas import ErrorOut
 from salevault.db.runs import RunAlreadyRunningError
+
+log = logging.getLogger(__name__)
 
 
 class ApiError(Exception):
@@ -39,6 +43,18 @@ def install_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(RunNotRunningError)
     async def _not_running(_request: Request, exc: RunNotRunningError) -> JSONResponse:
         return _json(409, "run_not_running", str(exc))
+
+    @app.exception_handler(OperationalError)
+    async def _database_error(request: Request, exc: OperationalError) -> JSONResponse:
+        if "locked" in str(exc) or "busy" in str(exc):
+            return _json(503, "database_busy", "The database is busy (a scrape is merging); retry")
+        log.exception("Database error on %s", request.url.path)
+        return _json(500, "internal", "Internal error; see the server log")
+
+    @app.exception_handler(Exception)
+    async def _internal(request: Request, exc: Exception) -> JSONResponse:
+        log.exception("Unhandled error on %s", request.url.path)
+        return _json(500, "internal", "Internal error; see the server log")
 
     @app.exception_handler(LaunchError)
     async def _launch_failed(_request: Request, exc: LaunchError) -> JSONResponse:

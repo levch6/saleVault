@@ -326,10 +326,16 @@ def serve(
 ) -> None:
     """Run the API server; also serves the built UI if frontend/dist exists."""
     settings = get_settings()
+    bind = host or settings.host
+    if bind not in ("127.0.0.1", "localhost", "::1"):
+        console.print(
+            f"[bold yellow]Warning:[/] binding to {bind} exposes an API without authentication "
+            "that can start scrapes. Keep it on 127.0.0.1 unless you know what you are doing."
+        )
     uvicorn.run(
         "salevault.api.app:create_app",
         factory=True,
-        host=host or settings.host,
+        host=bind,
         port=port or settings.port,
         reload=reload,
         reload_dirs=[str(Path(__file__).parent)] if reload else None,

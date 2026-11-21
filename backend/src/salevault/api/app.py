@@ -2,14 +2,16 @@
 
 import asyncio
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
+from urllib.parse import urlsplit
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from salevault import __version__
 from salevault.api.errors import install_error_handlers
@@ -23,6 +25,8 @@ from salevault.db.migrate import upgrade
 from salevault.db.runs import RunRepository
 
 log = logging.getLogger(__name__)
+
+CallNext = Callable[[Request], Awaitable[Response]]
 
 
 def _operation_id(route: APIRoute) -> str:
@@ -76,10 +80,53 @@ def create_app(
         lifespan=lifespan,
     )
     install_error_handlers(app)
+    _install_request_guards(app, config)
     for router in (health.router, catalog.router, favorites.router, settings.router, runs.router):
         app.include_router(router, prefix="/api")
     _mount_frontend(app, config.frontend_dist)
     return app
+
+
+SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
+
+
+def _install_request_guards(app: FastAPI, config: Settings) -> None:
+    """The API has no authentication and listens on localhost: make sure only the user's own
+    browser tab and tools can use it, not other web pages."""
+    hosts = list(config.allowed_hosts)
+    if config.host not in ("0.0.0.0", "::", "", *hosts):
+        hosts.append(config.host)
+
+    @app.middleware("http")
+    async def same_origin_writes(request: Request, call_next: CallNext) -> Response:
+        if request.method not in SAFE_METHODS:
+            origin = request.headers.get("origin")
+            cross_site = request.headers.get("sec-fetch-site") == "cross-site"
+            if cross_site or (origin is not None and urlsplit(origin).hostname not in hosts):
+                return JSONResponse(
+                    status_code=403,
+                    content={
+                        "detail": "Requests from other sites are refused",
+                        "code": "forbidden",
+                    },
+                )
+        return await call_next(request)
+
+    @app.middleware("http")
+    async def security_headers(request: Request, call_next: CallNext) -> Response:
+        response = await call_next(request)
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        # Product images come from the shops' CDN: don't tell it about the local app.
+        response.headers.setdefault("Referrer-Policy", "no-referrer")
+        path = request.url.path
+        if path.startswith("/assets/"):  # content-hashed file names
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        elif not path.startswith("/api/"):  # index.html: pick up a new build right away
+            response.headers.setdefault("Cache-Control", "no-cache")
+        return response
+
+    # Added last, so it runs first: refuse unknown Host headers before anything else.
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=hosts)
 
 
 def _mount_frontend(app: FastAPI, dist: Path) -> None:
@@ -96,7 +143,10 @@ def _mount_frontend(app: FastAPI, dist: Path) -> None:
     async def spa(full_path: str) -> FileResponse:
         if full_path == "api" or full_path.startswith("api/"):
             raise HTTPException(status_code=404)
-        candidate = (root / full_path).resolve()
+        try:
+            candidate = (root / full_path).resolve()
+        except ValueError, OSError:  # e.g. a NUL byte in the path
+            return FileResponse(index)
         if full_path and candidate.is_file() and candidate.is_relative_to(root):
             return FileResponse(candidate)
         return FileResponse(index)
