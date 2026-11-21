@@ -136,6 +136,25 @@ def test_my_sizes(seeded: TestClient) -> None:
     assert {s["label"]: s["is_mine"] for s in card["sizes"]} == {"S": False, "M": True}
 
 
+def test_facets_combine_with_every_filter(seeded: TestClient) -> None:
+    """Regression: EXISTS filters on tables the facet query joins itself (sizes, categories)."""
+    seeded.put("/api/settings", json={"my_sizes": ["M", "L"]})
+    root = next(c for c in seeded.get("/api/facets").json()["categories"] if c["name"] == "Root")
+
+    for params in (
+        {"my_sizes": True},
+        {"size": "S"},
+        {"category": root["id"]},
+        {"my_sizes": True, "size": "M", "category": root["id"], "flags": "favorite"},
+    ):
+        response = seeded.get("/api/facets", params=params)
+        assert response.status_code == 200, (params, response.text)
+
+    facets = seeded.get("/api/facets", params={"my_sizes": True}).json()
+    assert facets["total"] == 2
+    assert {s["label"]: s["count"] for s in facets["sizes"]} == {"M": 1, "L": 1}
+
+
 def test_badges_and_flags(seeded: TestClient) -> None:
     by_name = {i["name"]: i for i in items(seeded)}
 
