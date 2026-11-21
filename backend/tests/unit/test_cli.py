@@ -16,6 +16,19 @@ def test_version() -> None:
     assert result.stdout.strip() == __version__
 
 
+def test_scrape_requires_dry_run_until_storage_exists() -> None:
+    result = runner.invoke(app, ["scrape", "prm"])
+
+    assert result.exit_code == 2
+
+
+def test_scrape_rejects_unknown_sites() -> None:
+    result = runner.invoke(app, ["scrape", "nope", "--dry-run"])
+
+    assert result.exit_code == 2
+    assert "Unknown site" in result.output
+
+
 def test_openapi_export(tmp_path: Path) -> None:
     out = tmp_path / "openapi.json"
 

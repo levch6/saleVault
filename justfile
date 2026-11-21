@@ -31,6 +31,10 @@ dev:
 start: build
     cd {{ backend }} && uv run salevault serve
 
+# Scrape a site's sale section (dry run until DB storage lands), e.g. `just scrape prm --top 50`
+scrape site *args:
+    cd {{ backend }} && uv run salevault scrape {{ site }} --dry-run {{ args }}
+
 # Build the frontend into frontend/dist
 build:
     cd {{ frontend }} && pnpm build
