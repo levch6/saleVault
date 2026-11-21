@@ -5,10 +5,10 @@ import logging
 import math
 import random
 from collections import defaultdict
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Protocol
+from typing import Any, Protocol, Self
 
 from tenacity import (
     AsyncRetrying,
@@ -46,6 +46,73 @@ class RunOptions:
     """Debug limit; a limited run is never considered complete."""
     segment_completeness: float = 0.98
     total_completeness: float = 0.99
+
+
+@dataclass(frozen=True, slots=True)
+class SegmentPlan:
+    """A planned segment; serializable so an interrupted run can be resumed."""
+
+    segment: Segment
+    count: int
+    pages: int
+    """Pages to fetch, after any debug limit."""
+    full_pages: int
+    truncated: bool = False
+
+    @property
+    def limited(self) -> bool:
+        return self.pages < self.full_pages
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "sex": self.segment.sex,
+            "price": list(self.segment.price) if self.segment.price else None,
+            "count": self.count,
+            "pages": self.pages,
+            "full_pages": self.full_pages,
+            "truncated": self.truncated,
+        }
+
+    @classmethod
+    def from_json(cls, data: Mapping[str, Any]) -> Self:
+        price = data.get("price")
+        return cls(
+            segment=Segment(
+                sex=data.get("sex"), price=(int(price[0]), int(price[1])) if price else None
+            ),
+            count=int(data["count"]),
+            pages=int(data["pages"]),
+            full_pages=int(data["full_pages"]),
+            truncated=bool(data.get("truncated", False)),
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class ResumeState:
+    """What an interrupted run already has: its plan, fetched pages and staged items."""
+
+    expected_total: int
+    plan: tuple[SegmentPlan, ...]
+    done_pages: Mapping[tuple[str, int], Sequence[str]]
+    """(segment key, page) -> ids of the items on that page."""
+    items: Mapping[str, ProductRecord]
+    genders: Mapping[str, Gender]
+
+
+class RunSink(Protocol):
+    """Receives the plan and every fetched page as they happen (e.g. to stage them in the DB)."""
+
+    def on_plan(self, expected_total: int, plan: Sequence[SegmentPlan]) -> None: ...
+
+    def on_page(self, segment: Segment, page: int, gender: Gender, result: PageResult) -> None: ...
+
+
+class NullSink:
+    def on_plan(self, expected_total: int, plan: Sequence[SegmentPlan]) -> None:
+        pass
+
+    def on_page(self, segment: Segment, page: int, gender: Gender, result: PageResult) -> None:
+        pass
 
 
 class ProgressListener(Protocol):
@@ -124,6 +191,12 @@ class _Collector:
             self.genders[item.external_id] = self.genders.get(item.external_id, Gender(0)) | gender
             seen.add(item.external_id)
 
+    def seed(self, resume: ResumeState) -> None:
+        self.items.update(resume.items)
+        self.genders.update(resume.genders)
+        for (key, _page), ids in resume.done_pages.items():
+            self.per_segment[key].update(ids)
+
 
 class ScrapeRunner:
     def __init__(
@@ -132,6 +205,7 @@ class ScrapeRunner:
         options: RunOptions | None = None,
         *,
         progress: ProgressListener | None = None,
+        sink: RunSink | None = None,
         raw_sink: RawSink | None = None,
         sleep: Sleep = asyncio.sleep,
         rng: random.Random | None = None,
@@ -139,6 +213,7 @@ class ScrapeRunner:
         self._adapter = adapter
         self._opts = options or RunOptions()
         self._progress = progress or NullProgress()
+        self._sink = sink or NullSink()
         self._raw_sink = raw_sink
         self._sleep = sleep
         self._rng = rng or random.Random()
@@ -149,42 +224,37 @@ class ScrapeRunner:
     def safe_limit(self) -> int:
         return int(self._adapter.page_size * self._adapter.max_pages * self._opts.safe_limit_ratio)
 
-    async def run(self) -> ScrapeResult:
+    async def run(self, resume: ResumeState | None = None) -> ScrapeResult:
+        """Scrape the whole catalog, or finish an interrupted run when `resume` is given."""
         started = datetime.now(UTC)
         await self._adapter.warm_up()
 
-        root = await self._request(Segment(), 1)
-        roots = self._adapter.root_segments(root) or [Segment()]
-        planned = await plan_segments(
-            self._planning_fetch,
-            roots,
-            limit=self.safe_limit,
-            fallback_price_range=root.facets.price_range,
-            known_first_pages={Segment(): root},
-        )
-
         collector = _Collector()
-        jobs: list[tuple[Segment, int]] = []
-        pages_per_segment: dict[str, int] = {}
-        limited = False
-        for p in planned:
-            collector.add(p.segment, self._adapter.gender_of(p.segment), p.first_page)
-            pages = self._pages_for(p.count)
-            if self._opts.max_pages_per_segment is not None:
-                limited = limited or pages > self._opts.max_pages_per_segment
-                pages = min(pages, self._opts.max_pages_per_segment)
-            pages_per_segment[p.segment.key] = pages
-            jobs.extend((p.segment, page) for page in range(2, pages + 1))
+        if resume is None:
+            expected_total, plan = await self._plan(collector)
+            done: set[tuple[str, int]] = {(sp.segment.key, 1) for sp in plan}
+        else:
+            expected_total, plan = resume.expected_total, list(resume.plan)
+            collector.seed(resume)
+            done = set(resume.done_pages)
+            log.info("Resuming: %d pages already fetched", len(done))
 
-        pages_total = len(planned) + len(jobs)
-        pages_done = len(planned)
-        self._progress.on_planned(len(planned), pages_total)
+        jobs = [
+            (sp.segment, page)
+            for sp in plan
+            for page in range(1, sp.pages + 1)
+            if (sp.segment.key, page) not in done
+        ]
+        pages_total = sum(sp.pages for sp in plan)
+        pages_done = pages_total - len(jobs)
+        self._progress.on_planned(len(plan), pages_total)
         self._progress.on_page(pages_done, len(collector.items))
         log.info(
-            "Planned %d segments, %d pages (%d expected items)",
-            len(planned),
+            "Planned %d segments, %d pages (%d expected items), %d to fetch",
+            len(plan),
             pages_total,
-            root.count,
+            expected_total,
+            len(jobs),
         )
 
         queue: asyncio.Queue[tuple[Segment, int]] = asyncio.Queue()
@@ -199,7 +269,9 @@ class ScrapeRunner:
                 except asyncio.QueueEmpty:
                     return
                 result = await self._request(segment, page)
-                collector.add(segment, self._adapter.gender_of(segment), result)
+                gender = self._adapter.gender_of(segment)
+                collector.add(segment, gender, result)
+                self._sink.on_page(segment, page, gender, result)
                 pages_done += 1
                 self._progress.on_page(pages_done, len(collector.items))
 
@@ -214,32 +286,58 @@ class ScrapeRunner:
             site=self._adapter.code,
             started_at=started,
             finished_at=datetime.now(UTC),
-            expected_total=root.count,
+            expected_total=expected_total,
             items=collector.items,
             genders=collector.genders,
-            segments=[self._report(p, collector, pages_per_segment) for p in planned],
+            segments=[self._report(sp, collector) for sp in plan],
             requests=self._requests,
             retries=self._retries,
             invalid_items=collector.invalid,
-            limited=limited,
+            limited=any(sp.limited for sp in plan),
             segment_threshold=self._opts.segment_completeness,
             total_threshold=self._opts.total_completeness,
         )
 
-    def _pages_for(self, count: int) -> int:
-        return min(max(1, math.ceil(count / self._adapter.page_size)), self._adapter.max_pages)
+    async def _plan(self, collector: _Collector) -> tuple[int, list[SegmentPlan]]:
+        root = await self._request(Segment(), 1)
+        roots = self._adapter.root_segments(root) or [Segment()]
+        planned = await plan_segments(
+            self._planning_fetch,
+            roots,
+            limit=self.safe_limit,
+            fallback_price_range=root.facets.price_range,
+            known_first_pages={Segment(): root},
+        )
+        plan = [self._segment_plan(p) for p in planned]
+        self._sink.on_plan(root.count, plan)
+        for p in planned:  # page 1 of every segment was fetched while planning
+            gender = self._adapter.gender_of(p.segment)
+            collector.add(p.segment, gender, p.first_page)
+            self._sink.on_page(p.segment, 1, gender, p.first_page)
+        return root.count, plan
+
+    def _segment_plan(self, planned: PlannedSegment) -> SegmentPlan:
+        full = min(
+            max(1, math.ceil(planned.count / self._adapter.page_size)), self._adapter.max_pages
+        )
+        limit = self._opts.max_pages_per_segment
+        return SegmentPlan(
+            segment=planned.segment,
+            count=planned.count,
+            pages=min(full, limit) if limit is not None else full,
+            full_pages=full,
+            truncated=planned.truncated,
+        )
 
     @staticmethod
-    def _report(
-        planned: PlannedSegment, collector: _Collector, pages: dict[str, int]
-    ) -> SegmentReport:
-        key = planned.segment.key
+    def _report(plan: SegmentPlan, collector: _Collector) -> SegmentReport:
+        key = plan.segment.key
         return SegmentReport(
             key=key,
-            expected=planned.count,
+            expected=plan.count,
             fetched=len(collector.per_segment[key]),
-            pages=pages[key],
-            truncated=planned.truncated,
+            pages=plan.pages,
+            truncated=plan.truncated,
         )
 
     async def _planning_fetch(self, segment: Segment, page: int) -> PageResult:

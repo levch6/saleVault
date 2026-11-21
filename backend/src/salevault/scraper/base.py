@@ -8,6 +8,16 @@ from salevault.domain.models import Gender, ProductRecord
 
 
 @dataclass(frozen=True, slots=True)
+class SiteInfo:
+    """What the storage layer needs to know about a shop."""
+
+    code: str
+    name: str
+    origin: str
+    currency: str
+
+
+@dataclass(frozen=True, slots=True)
 class HttpResponse:
     status: int
     """HTTP status; 0 means the request did not complete (network error or timeout)."""
