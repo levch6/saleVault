@@ -100,6 +100,10 @@ API docs (OpenAPI) are served at `/api/docs`. Benchmarks: `backend/scripts/make_
 
 A personal project, not affiliated with or endorsed by PRM or Answear. It reads the same public catalog data that the shops' own pages load, slowly, and keeps it only on your machine. Check a shop's terms of use before scraping it, and do not redistribute its data.
 
+## License
+
+[MIT](LICENSE).
+
 ## Layout
 
 ```

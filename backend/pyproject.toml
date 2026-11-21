@@ -3,6 +3,7 @@ name = "salevault"
 version = "0.1.0"
 description = "Scrapes sale sections of fashion shops and serves them sorted by discount"
 requires-python = ">=3.15"
+license = "MIT"
 dependencies = [
     "alembic>=1.20.1",
     "curl-cffi>=0.17.0",
