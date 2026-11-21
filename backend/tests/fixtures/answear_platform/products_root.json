@@ -331,7 +331,7 @@
         {
           "id": 86,
           "type": "temporary",
-          "text": "BLACK FRIDAY",
+          "text": "Promo",
           "priority": 7,
           "textColor": "#ffffff",
           "backgroundColor": "#2c2c2c",
@@ -499,7 +499,7 @@
         {
           "id": 86,
           "type": "temporary",
-          "text": "BLACK FRIDAY",
+          "text": "Promo",
           "priority": 7,
           "textColor": "#ffffff",
           "backgroundColor": "#2c2c2c",
@@ -529,7 +529,7 @@
       "allSizes": [
         {
           "id": 362,
-          "name": "\u041e\u0434\u0438\u043d \u0440\u043e\u0437\u043c\u0456\u0440",
+          "name": "One size",
           "variation": {
             "id": 398291,
             "ean": "0000000398291",
@@ -622,7 +622,7 @@
         {
           "id": 86,
           "type": "temporary",
-          "text": "BLACK FRIDAY",
+          "text": "Promo",
           "priority": 7,
           "textColor": "#ffffff",
           "backgroundColor": "#2c2c2c",
@@ -767,7 +767,7 @@
         {
           "id": 69,
           "type": "temporary",
-          "text": "-10% \u0437 \u043a\u043e\u0434\u043e\u043c OFF*",
+          "text": "Promo",
           "priority": 3,
           "textColor": "#ffffff",
           "backgroundColor": "#2c2c2c",
@@ -921,7 +921,7 @@
         {
           "id": 86,
           "type": "temporary",
-          "text": "BLACK FRIDAY",
+          "text": "Promo",
           "priority": 7,
           "textColor": "#ffffff",
           "backgroundColor": "#2c2c2c",

@@ -33,6 +33,6 @@ def test_percent_off(price: int, reference: int, expected: int) -> None:
 
 
 def test_search_text_is_casefolded_and_skips_empty_parts() -> None:
-    text = build_search_text("MM6 Maison Margiela", "Штани  STRAIGHT", None, " ")
+    text = build_search_text("Brand Name", "Штани  STRAIGHT", None, " ")
 
-    assert text == "mm6 maison margiela штани straight"
+    assert text == "brand name штани straight"

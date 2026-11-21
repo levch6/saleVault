@@ -70,6 +70,12 @@ def anonymize_item(item: dict[str, Any], idx: int, brands: dict[str, str]) -> di
         category["name"] = f"Category {category['id']}"
     for size in item.get("allSizes", []):
         size["variation"]["ean"] = f"{size['variation']['id']:0>13}"
+        if not size["name"].isascii():  # the shop's own words, e.g. "one size" in Ukrainian
+            size["name"] = "One size"
+    for key in ("badges", "badgesFront"):
+        for badge in item.get(key) or []:
+            if badge.get("type") != "percentage":  # promo codes and campaign names
+                badge["text"] = "Promo"
 
     images = item.get("productImages", {})
     counter = 0
