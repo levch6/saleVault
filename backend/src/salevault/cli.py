@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from salevault import __version__
 from salevault.config import get_settings
 from salevault.db.engine import create_db_engine, make_session_factory, sqlite_url
+from salevault.db.maintenance import backup, vacuum
 from salevault.db.migrate import upgrade
 from salevault.db.runs import NothingToResumeError, RunAlreadyRunningError, RunRepository
 from salevault.scraper.base import SiteAdapter
@@ -278,6 +279,23 @@ def runs(
     finally:
         engine.dispose()
     render_runs(console, rows)
+
+
+@db_app.command("backup")
+def db_backup(
+    keep: Annotated[int, typer.Option(min=1, help="How many backups to keep.")] = 5,
+) -> None:
+    """Copy the database to data/backups (consistent even while the app runs)."""
+    settings = get_settings()
+    target = backup(settings.db_path, settings.data_dir / "backups", keep=keep)
+    console.print(f"Backup written to {target} ({target.stat().st_size / 1e6:.0f} MB)")
+
+
+@db_app.command("vacuum")
+def db_vacuum() -> None:
+    """Shrink the database file (runs also do this when it has grown a lot)."""
+    before, after = vacuum(get_settings().db_path)
+    console.print(f"Database compacted: {before / 1e6:.0f} MB -> {after / 1e6:.0f} MB")
 
 
 @db_app.command("upgrade")

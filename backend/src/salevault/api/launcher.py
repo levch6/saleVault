@@ -18,6 +18,8 @@ from sqlalchemy.orm import Session, sessionmaker
 from salevault.db.runs import RunAlreadyRunningError, RunRepository, RunRow
 
 CommandFactory = Callable[[str, bool | None], list[str]]
+KEEP_LOGS = 20
+"""UI runs write one log each; older ones are deleted."""
 
 
 class LaunchError(Exception):
@@ -60,6 +62,8 @@ class RunLauncher:
 
         logs = self._data_dir / "logs"
         logs.mkdir(parents=True, exist_ok=True)
+        for old in sorted(logs.glob("run-*.log"), key=lambda p: p.stat().st_mtime)[:-KEEP_LOGS]:
+            old.unlink(missing_ok=True)
         log_path = logs / f"run-{site}-{datetime.now(UTC):%Y%m%dT%H%M%SZ}.log"
         env = os.environ | {"SALEVAULT_DATA_DIR": str(self._data_dir), "COLUMNS": "120"}
         with log_path.open("ab") as log_file:
