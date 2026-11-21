@@ -2,6 +2,7 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 
 backend := "backend"
 frontend := "frontend"
+url := "http://localhost:8000"
 
 # Pinned generator toolchain: openapi-typescript needs the classic TS 5 compiler API,
 # while the app itself type-checks with TS 7.
@@ -27,9 +28,40 @@ dev:
     (cd {{ frontend }} && ./node_modules/.bin/vite) &
     wait -n
 
-# Build the UI and serve UI + API from a single process on :8000
+# Build the UI, serve UI + API on :8000 and open it in the browser once it is up
 start: build
-    cd {{ backend }} && uv run salevault serve
+    #!/usr/bin/env bash
+    set -euo pipefail
+    (for _ in $(seq 1 120); do
+        if curl -sf -o /dev/null {{ url }}/api/health; then just open; exit 0; fi
+        sleep 0.5
+    done) &
+    cd {{ backend }} && exec uv run salevault serve
+
+# Open the app in the default browser (the Windows one under WSL)
+open:
+    #!/usr/bin/env bash
+    if command -v explorer.exe >/dev/null; then explorer.exe "{{ url }}" || true
+    elif command -v xdg-open >/dev/null; then xdg-open "{{ url }}"
+    else echo "Open {{ url }} in a browser"; fi
+
+# Copy the database to data/backups (keeps the last 5; safe while the app runs)
+backup:
+    cd {{ backend }} && uv run salevault db backup
+
+# Shrink the database file (runs also compact it when it has grown a lot)
+vacuum:
+    cd {{ backend }} && uv run salevault db vacuum
+
+# Put a saleVault.bat on the Windows desktop that starts the app in WSL and opens the browser
+shortcut:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    profile=$(cmd.exe /c 'echo %USERPROFILE%' 2>/dev/null | tr -d '\r')
+    target="$(wslpath "$profile")/Desktop/saleVault.bat"
+    printf '@echo off\r\ntitle saleVault\r\nwsl.exe -d %s --cd "%s" -- bash -lc "just start"\r\n' \
+        "$WSL_DISTRO_NAME" "$PWD" > "$target"
+    echo "Created $target (close its window to stop the app)"
 
 # Scrape a site into the local DB, e.g. `just scrape prm`, `just scrape prm --resume`, `--dry-run`
 scrape site *args:
