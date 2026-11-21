@@ -24,7 +24,8 @@ Personal, local-only tool: scrapes the sale sections of fashion shops (PRM.com, 
 - `just setup`: install everything (uv sync, Playwright Chromium, pnpm install)
 - `just dev`: backend on :8000 (reload) + Vite on :5173 (proxies `/api`)
 - `just start`: build the UI, then a single process on :8000 serves UI + API
-- `just check`: lint + type check + tests (`just lint`, `just test`); run before every commit
+- `just check`: lint + type check + tests (`just lint`, `just test`); run before every commit. `just lint` also runs typos, zizmor (CI security) and a plain-ASCII check of tracked Markdown
+- `just hooks` (also part of `just setup`): git hooks via prek (`.pre-commit-config.yaml`): quick checks of the staged files (ruff, mypy, biome, tsc, typos, zizmor, ASCII Markdown) and the commit message format (`backend/scripts/check_commit_msg.py`). If a hook rewrites files, stage them and commit again; never bypass hooks with `--no-verify`
 - `just scrape prm [args]`: scrape a site into the DB; `--resume` continues an interrupted run, `--dry-run` only prints a summary, `--max-pages 1` for a quick smoke run, `--jsonl path` exports items
 - `just runs [--site prm]`: recent runs with status and catalog changes
 - `just db-upgrade`: apply migrations (scrapes do it automatically)
@@ -32,7 +33,7 @@ Personal, local-only tool: scrapes the sale sections of fashion shops (PRM.com, 
 - `just start` opens the browser once the server is healthy; `just shortcut` puts a `saleVault.lnk` with the app icon on the Windows desktop, pointing at a `.bat` and `.ico` in `%LOCALAPPDATA%\saleVault` (only run it when the user asks)
 - Logo: `frontend/public/favicon.svg` is the only source (black and white, inverted for dark browser themes); after changing it, `cd backend && uv run python scripts/make_icons.py` renders `favicon.ico`
 - `just fmt`, `just build`, `just gen-api`
-- CI (`.github/workflows/check.yml`): `just check` + `just build` on push to main and on PRs. Keep it offline (no live tests, no Playwright browsers). Node and pnpm versions come from `.node-version` and `packageManager` in `frontend/package.json`
+- CI (`.github/workflows/check.yml`): `just check` + `just build` on push to main and on PRs. Actions are pinned to commit SHAs with a `# vX.Y.Z` comment (zizmor requires it; Dependabot bumps both); checkout keeps `persist-credentials: false`. Keep it offline (no live tests, no Playwright browsers). Node and pnpm versions come from `.node-version` and `packageManager` in `frontend/package.json`
 - Dependabot (`.github/dependabot.yml`): monthly, minor and patch grouped per ecosystem (uv, npm, actions), 7-day cooldown. Its commits carry a body, so merge its PRs by squash with the PR title to keep history single-line
 - New migration: `cd backend && uv run alembic revision --autogenerate -m "..."`, then review the file in `src/salevault/db/migrations/versions/`
 - Live tests (hit the real site, open a browser window): `cd backend && uv run pytest -m live`

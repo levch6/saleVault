@@ -80,7 +80,8 @@ Migrations are applied automatically when the app or a scrape starts (`just db-u
 
 ```bash
 just dev        # API on :8000 with auto-reload + Vite on http://localhost:5173
-just check      # lint, format check, type check and all tests (offline)
+just check      # lint, format check, type check, spelling, CI security and all tests (offline)
+just hooks      # git hooks: quick checks on commit and the commit message format (part of just setup)
 just fmt        # auto-format and apply safe lint fixes
 just gen-api    # regenerate frontend API types after changing the API
 cd backend && uv run pytest -m live   # tests that hit the real shops (run by hand)
