@@ -10,6 +10,7 @@ Each record explains one significant decision: the context, what was decided, th
 | [0004](0004-price-history-and-staged-runs.md) | Price history as a change log; runs are staged and merged in one transaction | accepted |
 | [0005](0005-category-tree-from-the-api.md) | The shop's category tree is the source of truth for categories | accepted |
 | [0006](0006-reading-catalog-pages.md) | Read catalog pages when robots.txt disallows the API | accepted |
+| [0008](0008-reading-saks85.md) | Read Saks85's catalog pages, later pages through OpenCart's non-SEO URL (`&page=N`), by the owner's decision | accepted |
 
 ## Writing a new record
 

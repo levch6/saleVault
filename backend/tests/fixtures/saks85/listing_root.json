@@ -1,0 +1,58 @@
+{
+  "heading": "Category",
+  "currency": "UAH",
+  "summary": {
+    "first": 1,
+    "last": 12,
+    "total": 2873,
+    "pages": 240
+  },
+  "cards": [
+    {
+      "url": "https://saks85.com/product-1_test-0001",
+      "brand": "Brand 1",
+      "title": "Product 1",
+      "price": "6 952 UAH",
+      "price_regular": "8 690 UAH",
+      "images": [
+        "https://saks85.com/image/cache/catalog/pim/product/TEST-0001/test-0001-1-352x530.webp",
+        "https://saks85.com/image/cache/catalog/pim/product/TEST-0001/test-0001-2-352x530.webp"
+      ],
+      "sizes": [
+        {
+          "label": "M",
+          "available": false
+        },
+        {
+          "label": "L",
+          "available": false
+        },
+        {
+          "label": "XL",
+          "available": false
+        },
+        {
+          "label": "XXL",
+          "available": true
+        }
+      ]
+    },
+    {
+      "url": "https://saks85.com/product-2_test-0002",
+      "brand": "Brand 2",
+      "title": "Product 2",
+      "price": "3 592 UAH",
+      "price_regular": "4 490 UAH",
+      "images": [
+        "https://saks85.com/image/cache/catalog/pim/product/TEST-0002/test-0002-1-352x530.webp",
+        "https://saks85.com/image/cache/catalog/pim/product/TEST-0002/test-0002-2-352x530.webp"
+      ],
+      "sizes": [
+        {
+          "label": "OS",
+          "available": true
+        }
+      ]
+    }
+  ]
+}

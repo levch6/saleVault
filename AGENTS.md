@@ -1,6 +1,6 @@
 # saleVault: instructions for coding agents
 
-Personal, local-only, non-commercial tool: scrapes the sale sections of fashion shops (PRM, Answear.ua and Footshop) and shows items sorted by discount, biggest first, with filters, price history and favorites. Single user, not hosted, runs in WSL2 (Ubuntu) on Windows 11. The repository is public: everything tracked must be fit for publication (no shop data, neutral wording, nothing personal).
+Personal, local-only, non-commercial tool: scrapes the sale sections of fashion shops (PRM, Answear.ua, Footshop and Saks85) and shows items sorted by discount, biggest first, with filters, price history and favorites. Single user, not hosted, runs in WSL2 (Ubuntu) on Windows 11. The repository is public: everything tracked must be fit for publication (no shop data, neutral wording, nothing personal).
 
 This file is the shared brief for every coding agent. Tool-specific additions live next to the tool's config (`CLAUDE.md` for Claude Code imports this file). Reusable procedures are skills in `.agents/skills/`.
 
@@ -58,6 +58,7 @@ This file is the shared brief for every coding agent. Tool-specific additions li
 - Scraper rules in code: refusals are counted per run (`ScrapeRunner._refused`, shared pause), `auto` falls back to the browser only on a 403 at warm-up, `ScrapeError.raw` carries the body to the archive, more than 20% invalid items per page is a `ContractError`, and the request budget is derived from the plan.
 - Transports (`scraper/transports.py`): `auto` (default) = curl_cffi `HttpSession` first, the real browser only if the start page answers 403; `--transport browser|http` to force. PRM and Answear.ua refuse Playwright's headless shell, so the browser path runs a headed window (WSLg).
 - Two platforms behind one registry (`scraper/sites/registry.py`, configs implement `SiteConfig`): the Answear platform (PRM, Answear.ua: `POST <base>/api/products`) and Footshop (`footshop.py`). Footshop's robots.txt disallows its API (`*/api/*`, `?ajax=`) and query pagination (`?p=`), so the adapter reads the catalog pages (`/uk/872-znizhki/page-N`, 24 items) and parses the listing JSON embedded in them (Hypernova: `&` and `>` escaped inside an HTML comment); never call those endpoints (ADR-0006). Its segments are the men's, women's and kids' sale sections, no price split; a page number past the end returns the last page, which the adapter treats as empty. Shared adapter helpers live in `scraper/sites/common.py`.
+- Saks85 (`saks85.py`, OpenCart with ocFilter) has no API and no embedded product data: the adapter reads the product cards (12 per page) from the markup with `html.parser` and archives the parsed JSON. Its robots.txt disallows `/*?page=` (and `limit`, `sort`, `order`, `filter`, `search` in their spellings); by the owner's decision page 1 is the menu path and later pages are `index.php?route=product/category&path=<id>&filter_ocfilter=<selection>&page=N` (ADR-0008). Never request `?page=`, change the page size or sort, or call the ocFilter route; `test_saks85_adapter.py` checks every URL against those rules. Segments are gender x top-level category (8). Cards have no id: the id is the product path (decoded, hashed past 64 characters).
 - Discount rounding is per shop: `ProductRecord.create(percent_rounding=...)`, truncation for the Answear platform, half up for Footshop (its badges show 9.99% as -10%).
 - The API trusts only `SALEVAULT_ALLOWED_HOSTS` (tests add `testserver` in `backend/tests/conftest.py`), refuses non-GET requests from other origins and serves the UI with a strict CSP; unexpected errors are JSON (`internal`), a locked database is 503 (`database_busy`).
 - Filter EXISTS subqueries must use `aliased(...)` tables: facet queries join `product_sizes` / `product_categories` themselves and auto-correlation would break them.
@@ -69,7 +70,7 @@ This file is the shared brief for every coding agent. Tool-specific additions li
 - UI-triggered runs are separate processes (`api/launcher.py`): `python -m salevault scrape <site> --trigger ui [--resume]`, logs in `data/logs/`.
 - SQLAlchemy 2.1: never pass a `Result` to `dict()` (it has `.keys()`, so dict treats it as a mapping); use a comprehension. `Result.tuples()` is deprecated.
 - CLI tests: Typer forces ANSI styling when `GITHUB_ACTIONS` is set, so assert on `plain(result)` (`tests/unit/test_cli.py`), never on raw `result.output`.
-- Test fixtures must be anonymized: build them with `backend/scripts/make_fixture.py` from `data/raw/...` archives (it handles both the Answear API format and Footshop listings), never copy raw shop responses into the repo.
+- Test fixtures must be anonymized: build them with `backend/scripts/make_fixture.py` from `data/raw/...` archives (it handles the Answear API format, Footshop listings and Saks85 cards), never copy raw shop responses into the repo.
 
 ### Frontend
 

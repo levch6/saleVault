@@ -82,7 +82,7 @@ def wait_for_status(client: TestClient, run_id: int, status: str, timeout: float
 def test_sites_list_known_shops_before_any_run(client: TestClient) -> None:
     sites = client.get("/api/sites").json()
 
-    assert [s["code"] for s in sites] == ["answear_ua", "footshop_ua", "prm"]
+    assert [s["code"] for s in sites] == ["answear_ua", "footshop_ua", "prm", "saks85"]
     prm = next(s for s in sites if s["code"] == "prm")
     assert prm == {
         "code": "prm",

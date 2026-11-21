@@ -10,6 +10,7 @@ From the terminal:
 just scrape prm            # one shop
 just scrape answear_ua
 just scrape footshop_ua
+just scrape saks85
 just scrape all            # every known shop, one after another
 ```
 
@@ -26,8 +27,11 @@ Only one run per shop can be active. A run whose process has died, or that has n
 | PRM | about 17,500 | about 260 | 5 to 10 minutes |
 | Answear.ua | about 140,000 | about 2,000 | 30 to 40 minutes |
 | Footshop | about 15,000 | about 850 | about 12 minutes |
+| Saks85 | about 2,900 | about 260 | about 8 minutes |
 
 The pace is set on purpose (about one request per second per worker), so a run cannot be made much faster by better hardware. Footshop needs more requests per item than the others: it is read through its catalog pages, 24 items each, because its `robots.txt` disallows its API ([ADR-0006](../decisions/0006-reading-catalog-pages.md)).
+
+Saks85 has no API either: its catalog pages show 12 items each, so a run is one page view per 12 items ([ADR-0008](../decisions/0008-reading-saks85.md)).
 
 ## Read the result
 

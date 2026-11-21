@@ -4,6 +4,12 @@ from salevault.domain.models import Gender
 from salevault.scraper.base import SiteAdapter, SiteConfig, Transport
 from salevault.scraper.sites.answear_platform import AnswearPlatformAdapter, AnswearPlatformConfig
 from salevault.scraper.sites.footshop import FootshopAdapter, FootshopConfig, FootshopSection
+from salevault.scraper.sites.saks85 import (
+    Saks85Adapter,
+    Saks85Category,
+    Saks85Config,
+    Saks85Gender,
+)
 
 PRM = AnswearPlatformConfig(
     code="prm",
@@ -41,7 +47,30 @@ FOOTSHOP_UA = FootshopConfig(
     concurrency=2,  # about 850 pages per run; the first run with one worker had no refusals
 )
 
-SITES: dict[str, SiteConfig] = {config.code: config for config in (PRM, ANSWEAR_UA, FOOTSHOP_UA)}
+SAKS85 = Saks85Config(
+    code="saks85",
+    display_name="Saks85",
+    origin="https://saks85.com",
+    sale_path="special/rasprodazha",
+    sale_selection="10010:4252492525",
+    catalog=Saks85Category("catalogue", "0"),
+    # The sale's top-level categories (clothing, shoes, accessories, home fragrance) and the
+    # gender filter, as linked from the shop's menus. Unisex items are in both genders.
+    categories={
+        "clothing": Saks85Category("odyag", "69"),
+        "shoes": Saks85Category("vzuttya", "20"),
+        "accessories": Saks85Category("aksesuary", "84"),
+        "home": Saks85Category("aromaty-dlya-domu-ta-avto", "254"),
+    },
+    genders={
+        "men": Saks85Gender("stat/choloviche", "10024:4252492559", Gender.MEN),
+        "women": Saks85Gender("stat/zhinoche", "10024:4252492560", Gender.WOMEN),
+    },
+)
+
+SITES: dict[str, SiteConfig] = {
+    config.code: config for config in (PRM, ANSWEAR_UA, FOOTSHOP_UA, SAKS85)
+}
 
 
 def get_config(code: str) -> SiteConfig:
@@ -58,6 +87,8 @@ def create_adapter(code: str, transport: Transport) -> SiteAdapter:
         return AnswearPlatformAdapter(config, transport)
     if isinstance(config, FootshopConfig):
         return FootshopAdapter(config, transport)
+    if isinstance(config, Saks85Config):
+        return Saks85Adapter(config, transport)
     raise TypeError(f"No adapter for {type(config).__name__}")
 
 

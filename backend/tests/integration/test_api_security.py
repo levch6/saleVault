@@ -70,6 +70,7 @@ def test_the_ui_gets_a_strict_script_policy(client: TestClient) -> None:
         "'self'",
         "data:",
         "https://img2.ans-media.com",
+        "https://saks85.com",
         "https://static.ftshp.digital",
     ]
     assert directives["frame-ancestors"] == ["'none'"]

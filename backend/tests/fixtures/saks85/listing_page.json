@@ -1,0 +1,182 @@
+{
+  "heading": "Category",
+  "currency": "UAH",
+  "summary": {
+    "first": 1,
+    "last": 12,
+    "total": 1254,
+    "pages": 105
+  },
+  "cards": [
+    {
+      "url": "https://saks85.com/product-1_test-0001",
+      "brand": "Brand 1",
+      "title": "Product 1",
+      "price": "6 952 UAH",
+      "price_regular": "8 690 UAH",
+      "images": [
+        "https://saks85.com/image/cache/catalog/pim/product/TEST-0001/test-0001-1-352x530.webp",
+        "https://saks85.com/image/cache/catalog/pim/product/TEST-0001/test-0001-2-352x530.webp"
+      ],
+      "sizes": [
+        {
+          "label": "M",
+          "available": false
+        },
+        {
+          "label": "L",
+          "available": false
+        },
+        {
+          "label": "XL",
+          "available": false
+        },
+        {
+          "label": "XXL",
+          "available": true
+        }
+      ]
+    },
+    {
+      "url": "https://saks85.com/product-2_test-0002",
+      "brand": "Brand 2",
+      "title": "Product 2",
+      "price": "36 864 UAH",
+      "price_regular": "46 080 UAH",
+      "images": [
+        "https://saks85.com/image/cache/catalog/pim/product/TEST-0002/test-0002-1-352x530.webp",
+        "https://saks85.com/image/cache/catalog/pim/product/TEST-0002/test-0002-2-352x530.webp"
+      ],
+      "sizes": [
+        {
+          "label": "48",
+          "available": true
+        },
+        {
+          "label": "50",
+          "available": true
+        },
+        {
+          "label": "52",
+          "available": true
+        },
+        {
+          "label": "54",
+          "available": true
+        }
+      ]
+    },
+    {
+      "url": "https://saks85.com/product-3_test-0003",
+      "brand": "Brand 3",
+      "title": "Product 3",
+      "price": "12 681 UAH",
+      "price_regular": "14 090 UAH",
+      "images": [
+        "https://saks85.com/image/cache/catalog/pim/product/TEST-0003/test-0003-1-352x530.webp",
+        "https://saks85.com/image/cache/catalog/pim/product/TEST-0003/test-0003-2-352x530.webp"
+      ],
+      "sizes": [
+        {
+          "label": "M",
+          "available": false
+        },
+        {
+          "label": "L",
+          "available": false
+        },
+        {
+          "label": "XL",
+          "available": false
+        },
+        {
+          "label": "XXL",
+          "available": true
+        }
+      ]
+    },
+    {
+      "url": "https://saks85.com/product-4_test-0004",
+      "brand": "Brand 4",
+      "title": "Product 4",
+      "price": "13 592 UAH",
+      "price_regular": "16 990 UAH",
+      "images": [
+        "https://saks85.com/image/cache/catalog/pim/product/TEST-0004/test-0004-1-352x530.webp",
+        "https://saks85.com/image/cache/catalog/pim/product/TEST-0004/test-0004-2-352x530.webp"
+      ],
+      "sizes": [
+        {
+          "label": "32",
+          "available": false
+        },
+        {
+          "label": "34",
+          "available": true
+        },
+        {
+          "label": "36",
+          "available": true
+        },
+        {
+          "label": "33",
+          "available": true
+        }
+      ]
+    },
+    {
+      "url": "https://saks85.com/product-5_test-0005",
+      "brand": "Brand 5",
+      "title": "Product 5",
+      "price": "4 448 UAH",
+      "price_regular": "5 560 UAH",
+      "images": [
+        "https://saks85.com/image/cache/catalog/pim/product/TEST-0005/test-0005-1-352x530.webp",
+        "https://saks85.com/image/cache/catalog/pim/product/TEST-0005/test-0005-2-352x530.webp"
+      ],
+      "sizes": [
+        {
+          "label": "M",
+          "available": true
+        },
+        {
+          "label": "L",
+          "available": true
+        },
+        {
+          "label": "XL",
+          "available": true
+        }
+      ]
+    },
+    {
+      "url": "https://saks85.com/product-6_test-0006",
+      "brand": "Brand 2",
+      "title": "Product 6",
+      "price": "13 192 UAH",
+      "price_regular": "16 490 UAH",
+      "images": [
+        "https://saks85.com/image/cache/catalog/pim/product/TEST-0006/test-0006-1-352x530.webp",
+        "https://saks85.com/image/cache/catalog/pim/product/TEST-0006/test-0006-2-352x530.webp"
+      ],
+      "sizes": [
+        {
+          "label": "46",
+          "available": true
+        },
+        {
+          "label": "48",
+          "available": true
+        },
+        {
+          "label": "50",
+          "available": true
+        },
+        {
+          "label": "52",
+          "available": true
+        }
+      ]
+    }
+  ]
+}

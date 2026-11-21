@@ -37,3 +37,4 @@ The shop has no gender path filter exposed in its pages (applying its gender fil
 ## Updates
 
 - **2026-11-21:** after the first full run (one worker, no refusals) the shop uses two workers, like Answear.ua; a run takes about 12 minutes.
+- **2026-11-21:** Saks85 embeds no listing JSON in its pages, so its product cards are read from the markup, and only what was read is archived: [ADR-0008](0008-reading-saks85.md).

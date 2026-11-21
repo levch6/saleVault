@@ -3,8 +3,9 @@
 Usage:
     uv run python scripts/make_fixture.py RAW.json.gz OUT.json [--items N]
 
-Works with both archive formats: the Answear platform's API responses and the product listings
-taken from Footshop's catalog pages. Keeps the structure, ids, prices, sizes and availability.
+Works with every archive format: the Answear platform's API responses, the product listings
+taken from Footshop's catalog pages and the product cards read from Saks85's catalog pages.
+Keeps the structure, ids, prices, sizes and availability.
 Replaces shop text (names, brands, categories, labels, URLs, image names, EANs) with neutral
 English placeholders, so fixtures can live in a public repository.
 """
@@ -254,6 +255,57 @@ def footshop_fixture(page: dict[str, Any], n: int) -> dict[str, Any]:
     }
 
 
+# --- Saks85 catalog pages (the product cards the adapter read from a page) ---------------------
+
+SAKS85_ORIGIN = "https://saks85.com"
+
+
+def _saks85_features(card: dict[str, Any]) -> set[str]:
+    sizes = card.get("sizes", [])
+    found = {"single_size" if len(sizes) <= 1 else "several_sizes"}
+    found.update("size_" + ("in" if s.get("available") else "out") for s in sizes)
+    if len(card.get("images", [])) < 2:
+        found.add("one_image")
+    if "%" in str(card.get("url")):
+        found.add("encoded_url")
+    return found
+
+
+def _ascii_price(text: str) -> str:
+    """Keep the digits and spacing of a price, replace the currency word."""
+    return re.sub(r"[^\x00-\x7f]+", "UAH", text)
+
+
+def anonymize_saks85_card(card: dict[str, Any], idx: int, brands: dict[str, str]) -> dict[str, Any]:
+    card = copy.deepcopy(card)
+    code = f"test-{idx:04d}"
+    card["brand"] = brands.setdefault(str(card.get("brand")), f"Brand {len(brands) + 1}")
+    card["title"] = f"Product {idx}"
+    card["url"] = f"{SAKS85_ORIGIN}/product-{idx}_{code}"
+    card["price"] = _ascii_price(str(card.get("price", "")))
+    if card.get("price_regular"):
+        card["price_regular"] = _ascii_price(str(card["price_regular"]))
+    card["images"] = [
+        f"{SAKS85_ORIGIN}/image/cache/catalog/pim/product/{code.upper()}/{code}-{n}-352x530.webp"
+        for n, _ in enumerate(card.get("images", []), start=1)
+    ]
+    for size in card.get("sizes", []):
+        if not str(size.get("label", "")).isascii():
+            size["label"] = "One size"
+    return card
+
+
+def saks85_fixture(page: dict[str, Any], n: int) -> dict[str, Any]:
+    brands: dict[str, str] = {}
+    picked = pick_diverse(page["cards"], n, features=_saks85_features)
+    return {
+        "heading": "Category" if page.get("heading") else None,
+        "currency": page.get("currency"),
+        "summary": page.get("summary"),
+        "cards": [anonymize_saks85_card(c, i, brands) for i, c in enumerate(picked, start=1)],
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("raw", type=Path)
@@ -263,6 +315,12 @@ def main() -> None:
 
     with gzip.open(args.raw, "rt", encoding="utf-8") as fh:
         page = json.load(fh)
+
+    if "cards" in page and "summary" in page:
+        fixture = saks85_fixture(page, args.items)
+        _write(args.out, fixture)
+        print(f"Wrote {len(fixture['cards'])} items to {args.out}")
+        return
 
     if isinstance(page.get("data"), dict) and "state" in page["data"]:
         fixture = footshop_fixture(page, args.items)
