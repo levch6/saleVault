@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from typing import Protocol
 
-from salevault.domain.models import Gender, ProductRecord
+from salevault.domain.models import CategoryNode, Gender, ProductRecord
 
 
 @dataclass(frozen=True, slots=True)
@@ -80,6 +80,8 @@ class PageResult:
     """Raw response body, kept for archiving and fixtures."""
     invalid_items: int = 0
     """Items skipped because they failed validation."""
+    category_tree: tuple[CategoryNode, ...] | None = None
+    """The shop's category tree, when the request asked for it (root page only)."""
 
 
 class SiteAdapter(Protocol):

@@ -193,3 +193,25 @@ async def test_warm_up_failures(status: int, error: type[Exception]) -> None:
 
     with pytest.raises(error):
         await adapter.warm_up()
+
+
+def test_category_tree_is_requested_only_for_the_root_page() -> None:
+    adapter, _ = make_adapter()
+
+    assert adapter.request_body(Segment(), 1)["categoryTreeRequired"] is True
+    assert adapter.request_body(Segment(), 2)["categoryTreeRequired"] is False
+    assert adapter.request_body(Segment(sex="M"), 1)["categoryTreeRequired"] is False
+
+
+def test_category_tree_is_flattened_with_parents_and_depth() -> None:
+    adapter, _ = make_adapter()
+
+    root = adapter.parse_page(ok(load("products_root")))
+
+    assert root.category_tree is not None
+    nodes = {n.external_id: n for n in root.category_tree}
+    assert len(nodes) == 19
+    assert (nodes["6"].parent_external_id, nodes["6"].depth) == (None, 0)
+    assert (nodes["43"].parent_external_id, nodes["43"].depth) == ("40", 3)
+    assert nodes["101"].parent_external_id == "100"
+    assert adapter.parse_page(ok(load("products_page"))).category_tree is None
