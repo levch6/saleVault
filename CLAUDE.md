@@ -15,17 +15,25 @@ Personal, local-only tool: scrapes the sale sections of fashion shops (PRM.com, 
 
 ## Stack
 
-- Backend: Python 3.14 via uv, Playwright (async), Pydantic v2, SQLAlchemy 2 + Alembic, SQLite (WAL), FastAPI, Typer + Rich, tenacity. Quality: ruff, mypy --strict, pytest.
-- Frontend: Vite, React, TypeScript (strict), pnpm, Tailwind v4, shadcn/ui, TanStack Query + Router, openapi-fetch (types generated from FastAPI OpenAPI), Recharts, Biome, Vitest.
+- Backend: Python 3.15 via uv, Playwright (async), Pydantic v2, SQLAlchemy 2 + Alembic, SQLite (WAL), FastAPI, Typer + Rich, tenacity. Quality: ruff, mypy --strict, pytest (+ httpx2 for the test client).
+- Frontend: Vite 8, React 19 with React Compiler, TypeScript 7 (strict), pnpm 12, Tailwind v4, shadcn/ui (Radix base, Nova preset), TanStack Query + Router (file-based routes), openapi-fetch, Recharts, Biome, Vitest.
 - Task runner: `just` (see `justfile`).
 
-## Commands (available after phase 0)
+## Commands
 
-- `just setup`: install everything
-- `just dev`: backend on :8000 (reload) + Vite on :5173
-- `just start`: single process on :8000 serving the built UI
-- `just scrape prm`, `just scrape all`
-- `just test`, `just lint`, `just fmt`, `just gen-api`, `just db-upgrade`
+- `just setup`: install everything (uv sync, Playwright Chromium, pnpm install)
+- `just dev`: backend on :8000 (reload) + Vite on :5173 (proxies `/api`)
+- `just start`: build the UI, then a single process on :8000 serves UI + API
+- `just check`: lint + type check + tests (`just lint`, `just test`); run before every commit
+- `just fmt`, `just build`, `just gen-api`
+- Coming with later phases: `just scrape <site>`, `just db-upgrade`
+
+## Gotchas
+
+- TypeScript 7's npm package has no classic JS compiler API, so `openapi-typescript` is not a project dependency: `just gen-api` runs it through `pnpm dlx` with pinned `typescript@5.9`. Keep it that way until openapi-typescript supports TS 7.
+- `src/routeTree.gen.ts` and `src/api/schema.d.ts` are generated but committed (needed by `tsc` on a fresh clone) and excluded from Biome. Never edit them by hand.
+- pnpm 12 asks for approval of agent "skills" shipped by `@tanstack/react-router` and `@tanstack/router-plugin`. They are deliberately left unapproved; don't approve them without asking the user.
+- shadcn's `cn` helper comes from the `cn` package (shadcn-ui/cn) via `@/lib/utils`.
 
 ## Conventions
 
