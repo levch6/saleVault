@@ -139,6 +139,19 @@ def test_invalid_items_are_skipped_and_counted() -> None:
     assert len(page.items) == 5
 
 
+def test_a_changed_item_schema_fails_the_page() -> None:
+    """Most items invalid means the shop changed its schema: stop instead of skipping them all."""
+    adapter, _ = make_adapter()
+    payload = load("products_page")
+    for item in payload["items"][:2]:
+        del item["price"]
+
+    with pytest.raises(ContractError, match="2 of 6 items") as error:
+        adapter.parse_page(ok(payload))
+
+    assert error.value.raw is not None
+
+
 @pytest.mark.parametrize(
     ("status", "text", "error"),
     [

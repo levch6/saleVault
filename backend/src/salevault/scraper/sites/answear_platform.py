@@ -185,6 +185,10 @@ class RawProductsPage(_Api):
 # --- Adapter ---------------------------------------------------------------------------------
 
 
+MAX_INVALID_SHARE = 0.2
+"""A page with more invalid items than this means the item schema changed: stop the run."""
+
+
 class AnswearPlatformAdapter:
     page_size = 80
     max_pages = 125
@@ -194,6 +198,7 @@ class AnswearPlatformAdapter:
         self.code = config.code
         self._transport = transport
         self._warned_invalid = False
+        self._warmed_up = False
 
     @property
     def headers(self) -> dict[str, str]:
@@ -224,15 +229,19 @@ class AnswearPlatformAdapter:
         }
 
     async def warm_up(self) -> None:
+        """Open the start page like a visitor; once per adapter."""
+        if self._warmed_up:
+            return
         url = self.config.origin + self.config.warmup_path
         try:
             status = await self._transport.open(url)
         except Exception as exc:  # navigation timeouts, DNS, browser errors
             raise ScrapeError(f"Could not open {url}: {exc}") from exc
         if status in (403, 429):
-            raise BlockedError(f"Warm-up page {url} returned HTTP {status}")
+            raise BlockedError(f"Warm-up page {url} returned HTTP {status}", status=status)
         if status >= 400 or status == 0:
-            raise ScrapeError(f"Warm-up page {url} returned HTTP {status}")
+            raise ScrapeError(f"Warm-up page {url} returned HTTP {status}", status=status)
+        self._warmed_up = True
 
     async def fetch_page(self, segment: Segment, page: int) -> PageResult:
         response = await self._transport.post_json(
@@ -246,8 +255,8 @@ class AnswearPlatformAdapter:
             envelope = RawProductsPage.model_validate_json(response.text)
         except ValidationError as exc:
             if response.text.lstrip().startswith("<"):
-                raise BlockedError("Got an HTML page instead of JSON") from exc
-            raise ContractError(f"Unexpected products response: {exc}") from exc
+                raise BlockedError("Got an HTML page instead of JSON", raw=response.text) from exc
+            raise ContractError(f"Unexpected products response: {exc}", raw=response.text) from exc
 
         items: list[ProductRecord] = []
         invalid = 0
@@ -261,6 +270,13 @@ class AnswearPlatformAdapter:
                     log.warning(
                         "Skipping invalid item %s: %s", raw_item.get("id"), _short(str(exc))
                     )
+        if envelope.items and invalid > MAX_INVALID_SHARE * len(envelope.items):
+            # The item schema changed: fail loudly instead of fetching the rest of the shop for
+            # nothing (and keep this response for updating the models).
+            raise ContractError(
+                f"{invalid} of {len(envelope.items)} items do not match the expected schema",
+                raw=response.text,
+            )
         return PageResult(
             count=envelope.count,
             items=tuple(items),
@@ -327,10 +343,10 @@ def _raise_for_status(response: HttpResponse) -> None:
     if status == 200:
         return
     if status == 0 or status >= 500:
-        raise TransientError(f"HTTP {status}: {_short(response.text)}")
+        raise TransientError(f"HTTP {status}: {_short(response.text)}", status=status)
     if status in (403, 429):
-        raise BlockedError(f"HTTP {status}")
-    raise ContractError(f"HTTP {status}: {_short(response.text)}")
+        raise BlockedError(f"HTTP {status}", status=status, raw=response.text)
+    raise ContractError(f"HTTP {status}: {_short(response.text)}", status=status, raw=response.text)
 
 
 def _parse_category_tree(raw: dict[str, Any] | None) -> tuple[CategoryNode, ...] | None:

@@ -156,3 +156,15 @@ def test_list_runs_newest_first_with_stats(factory: sessionmaker[Session]) -> No
     assert rows[1].stats == {"new": 5}
     assert repo.list_runs(site="other") == []
     assert json.dumps(rows[0].stats) == '{"new": 1}'
+
+
+def test_planning_keeps_the_heartbeat_fresh(factory: sessionmaker[Session]) -> None:
+    repo = RunRepository(factory)
+    run_id = repo.start(FAKE_SITE, trigger="cli")
+    with session_scope(factory) as session:
+        session.get_one(ScrapeRun, run_id).updated_at = utcnow() - timedelta(minutes=10)
+
+    DbRunSink(factory, run_id).on_heartbeat()
+
+    with session_scope(factory) as session:
+        assert utcnow() - session.get_one(ScrapeRun, run_id).updated_at < timedelta(minutes=1)

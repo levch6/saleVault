@@ -6,6 +6,7 @@ import pytest
 
 from salevault.scraper import transports
 from salevault.scraper.base import HttpResponse
+from salevault.scraper.errors import BlockedError, ScrapeError
 from salevault.scraper.sites.answear_platform import TransportMode
 
 opened: list[str] = []
@@ -13,6 +14,7 @@ opened: list[str] = []
 
 class FakeHttp:
     status = 200
+    opens = 0
 
     def __init__(self, origin: str) -> None:
         self.origin = origin
@@ -27,6 +29,7 @@ class FakeHttp:
         opened.append("http closed")
 
     async def open(self, url: str) -> int:
+        FakeHttp.opens += 1
         return self.status
 
     async def post_json(self, path: str, body: object, headers: object) -> HttpResponse:
@@ -46,6 +49,7 @@ class FakeBrowser(FakeHttp):
 def fakes(monkeypatch: pytest.MonkeyPatch) -> None:
     opened.clear()
     FakeHttp.status = 200
+    FakeHttp.opens = 0
     monkeypatch.setattr(transports, "HttpSession", FakeHttp)
     monkeypatch.setattr(transports, "BrowserSession", FakeBrowser)
 
@@ -72,7 +76,30 @@ async def test_auto_falls_back_to_the_browser_when_refused() -> None:
 async def test_forced_http_does_not_fall_back() -> None:
     FakeHttp.status = 403
 
-    assert await use("http") == "FakeHttp"
+    with pytest.raises(BlockedError):
+        await use("http")
+
+
+@pytest.mark.parametrize(
+    ("status", "error"), [(429, BlockedError), (0, ScrapeError), (503, ScrapeError)]
+)
+async def test_auto_stops_on_a_rate_limit_or_an_error(status: int, error: type[Exception]) -> None:
+    """Only a 403 on the start page switches clients; a 429 asks for less traffic."""
+    FakeHttp.status = status
+
+    with pytest.raises(error):
+        await use("auto")
+
+    assert "browser" not in opened
+
+
+async def test_the_start_page_is_opened_once() -> None:
+    async with transports.open_adapter(
+        "prm", transport="auto", headless=False, profile_dir=Path("/tmp/unused")
+    ) as adapter:
+        await adapter.warm_up()  # the runner warms up again
+
+    assert FakeHttp.opens == 1
 
 
 async def test_browser_mode_never_tries_http() -> None:

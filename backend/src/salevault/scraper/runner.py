@@ -22,7 +22,12 @@ from tenacity import (
 
 from salevault.domain.models import CategoryNode, Gender, ProductRecord
 from salevault.scraper.base import PageResult, Segment, SiteAdapter
-from salevault.scraper.errors import BlockedError, BudgetExceededError, TransientError
+from salevault.scraper.errors import (
+    BlockedError,
+    BudgetExceededError,
+    ContractError,
+    TransientError,
+)
 from salevault.scraper.segmentation import PlannedSegment, plan_segments
 
 log = logging.getLogger(__name__)
@@ -36,11 +41,14 @@ class RunOptions:
     concurrency: int = 1
     delay_range_s: tuple[float, float] = (0.8, 1.6)
     """Random politeness pause after every request of a worker."""
-    max_requests: int = 3000
+    max_requests: int = 10_000
+    """Absolute cap. After planning, the budget shrinks to the planned pages plus a margin."""
+    request_margin: float = 0.25
+    """Extra requests allowed over the planned pages (retries, catalog drift)."""
     max_retries: int = 4
     """Retries for transient errors, with exponential backoff 2, 4, 8, 16 s."""
     block_pause_s: float = 60.0
-    """One pause on 403/429 before giving up."""
+    """On the first 403/429 of a run every worker pauses this long; the next refusal stops it."""
     safe_limit_ratio: float = 0.96
     """Segment size limit as a share of the API cap, leaving room for catalog drift."""
     max_pages_per_segment: int | None = None
@@ -119,6 +127,9 @@ class RunSink(Protocol):
 
     def on_page(self, segment: Segment, page: int, gender: Gender, result: PageResult) -> None: ...
 
+    def on_heartbeat(self) -> None:
+        """Still alive (called while planning, before any page is staged)."""
+
 
 class NullSink:
     def on_plan(self, expected_total: int, plan: Sequence[SegmentPlan]) -> None:
@@ -128,6 +139,9 @@ class NullSink:
         pass
 
     def on_page(self, segment: Segment, page: int, gender: Gender, result: PageResult) -> None:
+        pass
+
+    def on_heartbeat(self) -> None:
         pass
 
 
@@ -266,6 +280,10 @@ class ScrapeRunner:
         self._rng = rng or random.Random()
         self._requests = 0
         self._retries = 0
+        self._budget = self._opts.max_requests
+        self._refused = False
+        self._open = asyncio.Event()  # cleared while every worker waits out a refusal
+        self._open.set()
 
     @property
     def safe_limit(self) -> int:
@@ -293,6 +311,8 @@ class ScrapeRunner:
             if (sp.segment.key, page) not in done
         ]
         pages_total = sum(sp.pages for sp in plan)
+        planned_requests = math.ceil(len(jobs) * (1 + self._opts.request_margin)) + 50
+        self._budget = min(self._opts.max_requests, self._requests + planned_requests)
         pages_done = pages_total - len(jobs)
         self._progress.on_planned(len(plan), pages_total)
         self._progress.on_page(pages_done, len(collector.items))
@@ -395,12 +415,14 @@ class ScrapeRunner:
     async def _planning_fetch(self, segment: Segment, page: int) -> PageResult:
         result = await self._request(segment, page)
         self._progress.on_planning(self._requests)
+        self._sink.on_heartbeat()
         return result
 
     async def _request(self, segment: Segment, page: int) -> PageResult:
-        """One logical request: transient retries with backoff, one pause on a block."""
-        blocked_once = False
+        """One logical request: transient retries with backoff. The first refusal (403/429) of
+        the run pauses every worker once; any later refusal stops the run."""
         while True:
+            await self._open.wait()
             try:
                 retrying = AsyncRetrying(
                     retry=retry_if_exception_type(TransientError),
@@ -412,27 +434,39 @@ class ScrapeRunner:
                 )
                 result: PageResult = await retrying(self._attempt, segment, page)
             except BlockedError as exc:
-                if blocked_once:
+                if not self._open.is_set():  # another worker is already waiting this one out
+                    continue
+                if self._refused:
+                    log.error("Refused again by the site (%s); stopping the run", exc)
                     raise
-                blocked_once = True
+                self._refused = True
                 self._retries += 1
                 log.warning(
-                    "Blocked by site on %s p%d (%s); pausing %.0f s once",
+                    "Refused by the site on %s p%d (%s); all workers pause %.0f s once",
                     segment.key,
                     page,
                     exc,
                     self._opts.block_pause_s,
                 )
-                await self._sleep(self._opts.block_pause_s)
+                self._open.clear()
+                try:
+                    await self._sleep(self._opts.block_pause_s)
+                finally:
+                    self._open.set()
                 continue
             await self._sleep(self._rng.uniform(*self._opts.delay_range_s))
             return result
 
     async def _attempt(self, segment: Segment, page: int) -> PageResult:
-        if self._requests >= self._opts.max_requests:
-            raise BudgetExceededError(f"Request budget of {self._opts.max_requests} exhausted")
+        if self._requests >= self._budget:
+            raise BudgetExceededError(f"Request budget of {self._budget} exhausted")
         self._requests += 1
-        result = await self._adapter.fetch_page(segment, page)
+        try:
+            result = await self._adapter.fetch_page(segment, page)
+        except (BlockedError, ContractError) as exc:
+            if self._raw_sink is not None and exc.raw is not None:
+                self._raw_sink(segment, page, exc.raw)  # the response that broke the run
+            raise
         if self._raw_sink is not None:
             self._raw_sink(segment, page, result.raw)
         return result

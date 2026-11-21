@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from salevault.scraper.browser import BrowserSession
+from salevault.scraper.errors import BlockedError
 from salevault.scraper.http_transport import HttpSession
 from salevault.scraper.sites.answear_platform import AnswearPlatformAdapter, TransportMode
 from salevault.scraper.sites.registry import create_adapter, get_config
@@ -17,16 +18,27 @@ log = logging.getLogger(__name__)
 async def open_adapter(
     code: str, *, transport: TransportMode, headless: bool, profile_dir: Path
 ) -> AsyncIterator[AnswearPlatformAdapter]:
-    """`auto` tries HTTP first and falls back to the browser if the warm-up page is refused."""
-    config = get_config(code)
+    """`auto` tries HTTP first and uses the browser if the shop does not serve the HTTP client.
+
+    That is the only case that switches clients: a 403 on the start page, before any catalog
+    request. A 429 asks for less traffic and network errors would hit the browser too, so both
+    stop the run instead.
+    """
     if transport in ("auto", "http"):
-        async with HttpSession(config.origin) as http:
-            status = await http.open(config.origin + config.warmup_path)
-            if status == 200 or transport == "http":
+        async with HttpSession(get_config(code).origin) as http:
+            adapter = create_adapter(code, http)
+            try:
+                await adapter.warm_up()
+            except BlockedError as exc:
+                if transport == "http" or exc.status != 403:
+                    raise
+                log.warning(
+                    "%s: the start page refused the HTTP client (403); using the browser", code
+                )
+            else:
                 log.info("%s: using the HTTP transport (no browser window)", code)
-                yield create_adapter(code, http)
+                yield adapter
                 return
-        log.warning("%s: HTTP transport got HTTP %s at warm-up; using the browser", code, status)
     async with BrowserSession(profile_dir, headless=headless) as browser:
         log.info("%s: using the browser transport (%s)", code, "headless" if headless else "window")
         yield create_adapter(code, browser)

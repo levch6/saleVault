@@ -103,6 +103,28 @@ async def test_block_is_waited_out_once(adapter: FakeAdapter) -> None:
     assert sleep.calls.count(60.0) == 1
 
 
+async def test_refusals_are_counted_per_run_not_per_page(adapter: FakeAdapter) -> None:
+    """A shop that refuses every now and then is not waited out again and again."""
+    adapter.fail(Segment(sex="M"), 1, BlockedError("HTTP 429"))
+    adapter.fail(Segment(sex="D"), 1, BlockedError("HTTP 429"))
+    runner, sleep, _ = make_runner(adapter, block_pause_s=60.0)
+
+    with pytest.raises(BlockedError):
+        await runner.run()
+
+    assert sleep.calls.count(60.0) == 1
+
+
+async def test_the_response_that_breaks_the_contract_is_archived(adapter: FakeAdapter) -> None:
+    adapter.fail(Segment(sex="D"), 1, ContractError("unexpected shape", raw='{"odd": true}'))
+    runner, _, raw = make_runner(adapter)
+
+    with pytest.raises(ContractError):
+        await runner.run()
+
+    assert ("sex=D", 1) in raw
+
+
 async def test_repeated_block_stops_the_run(adapter: FakeAdapter) -> None:
     adapter.fail(Segment(sex="H"), 1, BlockedError("HTTP 403"), BlockedError("HTTP 403"))
     runner, _, _ = make_runner(adapter)

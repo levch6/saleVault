@@ -334,6 +334,10 @@ class DbRunSink:
             run.pages_total = sum(p.pages for p in plan)
             run.updated_at = utcnow()
 
+    def on_heartbeat(self) -> None:
+        with session_scope(self._factory) as session:
+            session.get_one(ScrapeRun, self._run_id).updated_at = utcnow()
+
     def on_category_tree(self, nodes: Sequence[CategoryNode]) -> None:
         with session_scope(self._factory) as session:
             run = session.get_one(ScrapeRun, self._run_id)
