@@ -23,7 +23,7 @@ from salevault.db.engine import create_db_engine, make_session_factory, sqlite_u
 from salevault.db.maintenance import backup, vacuum
 from salevault.db.migrate import upgrade
 from salevault.db.runs import NothingToResumeError, RunAlreadyRunningError, RunRepository
-from salevault.scraper.base import SiteAdapter
+from salevault.scraper.base import SiteAdapter, TransportMode
 from salevault.scraper.errors import ScrapeError
 from salevault.scraper.raw_archive import RawArchive
 from salevault.scraper.report import (
@@ -35,7 +35,6 @@ from salevault.scraper.report import (
 )
 from salevault.scraper.runner import RunOptions, ScrapeResult, ScrapeRunner
 from salevault.scraper.service import RunOutcome, execute_run
-from salevault.scraper.sites.answear_platform import TransportMode
 from salevault.scraper.sites.registry import SITES, get_config
 from salevault.scraper.transports import open_adapter
 

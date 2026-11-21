@@ -1,17 +1,20 @@
-"""Turn an archived raw API response into a small, anonymized test fixture.
+"""Turn an archived raw response into a small, anonymized test fixture.
 
 Usage:
     uv run python scripts/make_fixture.py RAW.json.gz OUT.json [--items N]
 
-Keeps the structure, ids, prices, sizes and availability. Replaces shop text (names, brands,
-categories, labels, URLs, image names, EANs) with neutral English placeholders, so fixtures
-can live in a public repository.
+Works with both archive formats: the Answear platform's API responses and the product listings
+taken from Footshop's catalog pages. Keeps the structure, ids, prices, sizes and availability.
+Replaces shop text (names, brands, categories, labels, URLs, image names, EANs) with neutral
+English placeholders, so fixtures can live in a public repository.
 """
 
 import argparse
 import copy
 import gzip
 import json
+import re
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -35,13 +38,17 @@ def _features(item: dict[str, Any]) -> set[str]:
     return found
 
 
-def pick_diverse(items: list[dict[str, Any]], n: int) -> list[dict[str, Any]]:
+def pick_diverse(
+    items: list[dict[str, Any]],
+    n: int,
+    features: Callable[[dict[str, Any]], set[str]] = _features,
+) -> list[dict[str, Any]]:
     picked: list[dict[str, Any]] = []
     covered: set[str] = set()
     for item in items:
-        if len(picked) < n and _features(item) - covered:
+        if len(picked) < n and features(item) - covered:
             picked.append(item)
-            covered |= _features(item)
+            covered |= features(item)
     for item in items:
         if len(picked) >= n:
             break
@@ -136,6 +143,117 @@ def anonymize_tree(tree: dict[str, Any], items: list[dict[str, Any]]) -> dict[st
     return {"items": [kept for root in tree.get("items", []) if (kept := prune(root))]}
 
 
+# --- Footshop catalog pages ------------------------------------------------------------------
+
+FOOTSHOP_SEX_LABELS = {"male": "Men", "female": "Women"}
+FOOTSHOP_IMAGE = re.compile(r"/img/p/(?:\d/)+(\d+)-([a-z_]+)\.([a-z]+)$")
+
+
+def _footshop_features(item: dict[str, Any]) -> set[str]:
+    found = {"ext_" + str(item.get("image", "")).rsplit(".", 1)[-1]}
+    variants = (item.get("attributes") or {}).get("variants", [])
+    found.add("single_size" if len(variants) <= 1 else "several_sizes")
+    if item.get("image_woman"):
+        found.add("image_woman")
+    if not str(item.get("name", "")).startswith(str(item.get("title"))):
+        found.add("title_not_in_name")
+    return found
+
+
+def _footshop_image(url: str, fake_id: int) -> str:
+    match = FOOTSHOP_IMAGE.search(url)
+    if not url or match is None:
+        return url
+    folder = "/".join(str(fake_id))
+    return f"https://static.ftshp.digital/img/p/{folder}/{fake_id}-{match[2]}.{match[3]}"
+
+
+def anonymize_footshop_item(
+    item: dict[str, Any], idx: int, brands: dict[str, str]
+) -> dict[str, Any]:
+    item = copy.deepcopy(item)
+    brand = item["manufacturer"]
+    brand_name = brands.setdefault(str(brand["id"]), f"Brand {len(brands) + 1}")
+    brand["name"] = brand_name
+    title = f"{brand_name} Product {idx}"
+    keep_title_in_name = str(item.get("name", "")).startswith(str(item.get("title")))
+    item["title"] = title
+    item["title_without_manufacturer"] = f"Product {idx}"
+    item["name"] = f"{title} Color {idx}" if keep_title_in_name else f"Other name {idx}"
+    item["code"] = f"TEST-{idx:04d}"
+    item["code_original"] = ""
+    item["description"] = ""
+    item["color"] = item["color_en"] = f"color {idx}"
+    category = item.get("main_category") or {}
+    if category:
+        cid = category["id"]
+        category.update(
+            name=f"Category {cid}",
+            name_en=f"Category {cid}",
+            short_name="",
+            short_name_en="",
+            slug=f"category-{cid}",
+            url=f"{cid}-category-{cid}",
+        )
+        item["category_name_en"] = f"Category {cid}"
+    item["url"] = f"category-{category.get('id', 0)}/{item['id']}-product-{idx}.html"
+    item["breadcrumbs"] = []
+    item["stickers"] = []
+    item["video"] = []
+    item["badges"] = [b for b in item.get("badges", []) if b.get("id") == "sale"]
+    item["public_voucher"] = None
+    item["boosting"] = None
+    for key in ("messages", "value_formatted", "value_without_reduction_formatted"):
+        item["price"].pop(key, None)
+    for n, key in enumerate(("image", "image_woman", "last_image"), start=1):
+        item[key] = _footshop_image(str(item.get(key) or ""), 9_000_000 + idx * 10 + n)
+    for variant in (item.get("attributes") or {}).get("variants", []):
+        size = re.search(r"size=(\d+)", variant.get("url", ""))
+        variant["url"] = item["url"] + (f"?size={size[1]}" if size else "")
+        variant["ean"] = f"{variant['package_id']:0>13}"
+        if not variant["name"].isascii():
+            variant["name"] = "One size"
+    return item
+
+
+def footshop_fixture(page: dict[str, Any], n: int) -> dict[str, Any]:
+    state = page["data"]["state"]
+    products = state["products"]
+    brands: dict[str, str] = {}
+    picked = pick_diverse(products["items"], n, features=_footshop_features)
+    items = [anonymize_footshop_item(item, i, brands) for i, item in enumerate(picked, start=1)]
+    filters: dict[str, Any] = {}
+    if isinstance(state["filters"].get("sex"), dict):
+        sex = copy.deepcopy(state["filters"]["sex"])
+        sex["name"] = "Sex"
+        for value in sex["items"]:
+            value["name"] = FOOTSHOP_SEX_LABELS.get(value["id"], f"Section {value['id']}")
+        filters["sex"] = sex
+    if isinstance(state["filters"].get("color"), dict):
+        # One unrelated facet stays, to prove the adapter ignores what it doesn't need.
+        color = copy.deepcopy(state["filters"]["color"])
+        color["name"] = "Color"
+        color["items"] = [
+            {**value, "name": f"color {i}", "name_en": f"color {i}"}
+            for i, value in enumerate(color["items"][:3], start=1)
+        ]
+        filters["color"] = color
+    return {
+        "data": {
+            "state": {
+                "listing_type": state.get("listing_type"),
+                "listing_type_id": state.get("listing_type_id"),
+                "filters": filters,
+                "products": {
+                    "total": products["total"],
+                    "pagination": products["pagination"],
+                    "items": items,
+                },
+            }
+        }
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("raw", type=Path)
@@ -145,6 +263,12 @@ def main() -> None:
 
     with gzip.open(args.raw, "rt", encoding="utf-8") as fh:
         page = json.load(fh)
+
+    if isinstance(page.get("data"), dict) and "state" in page["data"]:
+        fixture = footshop_fixture(page, args.items)
+        _write(args.out, fixture)
+        print(f"Wrote {len(fixture['data']['state']['products']['items'])} items to {args.out}")
+        return
 
     brands: dict[str, str] = {}
     items = [
@@ -157,9 +281,13 @@ def main() -> None:
         fixture["categoryTree"] = anonymize_tree(page["categoryTree"], items)
     fixture["items"] = items
 
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(json.dumps(fixture, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
+    _write(args.out, fixture)
     print(f"Wrote {len(items)} items to {args.out}")
+
+
+def _write(path: Path, fixture: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(fixture, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":

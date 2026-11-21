@@ -1,7 +1,8 @@
-"""Real-browser transport: Chromium via Playwright, API calls via `fetch` from the page.
+"""Real-browser transport: Chromium via Playwright. API calls go through `fetch` from the page,
+like the shop's own frontend; catalog pages are regular navigations.
 
 See docs/decisions/0002-fetching-through-the-shop-api.md: a stock Chromium without stealth
-plugins that calls the API from the shop's page, like the shop's own frontend.
+plugins.
 """
 
 import logging
@@ -89,6 +90,22 @@ class BrowserSession:
         response = await page.goto(url, wait_until="load", timeout=self._navigation_timeout_ms)
         self._last_url = url
         return response.status if response is not None else 0
+
+    async def get(self, url: str) -> HttpResponse:
+        """Navigate to a page and return its HTML as the server sent it (before any script ran)."""
+        page = self._require_page()
+        try:
+            response = await page.goto(url, wait_until="load", timeout=self._navigation_timeout_ms)
+            if response is None:
+                return HttpResponse(status=0, text=f"No response for {url}")
+            text = await response.text()
+        except PlaywrightError as exc:
+            log.warning("Browser navigation to %s failed (%s)", url, exc)
+            if page.is_closed():
+                await self._recover()
+            return HttpResponse(status=0, text=str(exc))
+        self._last_url = url
+        return HttpResponse(status=response.status, text=text)
 
     async def post_json(
         self, path: str, body: Mapping[str, object], headers: Mapping[str, str]

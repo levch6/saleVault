@@ -1,7 +1,9 @@
 """Known sites."""
 
-from salevault.scraper.base import Transport
+from salevault.domain.models import Gender
+from salevault.scraper.base import SiteAdapter, SiteConfig, Transport
 from salevault.scraper.sites.answear_platform import AnswearPlatformAdapter, AnswearPlatformConfig
+from salevault.scraper.sites.footshop import FootshopAdapter, FootshopConfig, FootshopSection
 
 PRM = AnswearPlatformConfig(
     code="prm",
@@ -23,10 +25,26 @@ ANSWEAR_UA = AnswearPlatformConfig(
     headless=False,  # same as PRM
 )
 
-SITES: dict[str, AnswearPlatformConfig] = {PRM.code: PRM, ANSWEAR_UA.code: ANSWEAR_UA}
+FOOTSHOP_UA = FootshopConfig(
+    code="footshop_ua",
+    display_name="Footshop",
+    origin="https://www.footshop.ua",
+    language="uk",
+    sale_path="/uk/872-znizhki",
+    # The "Sale" links of the men's, women's and kids' menus. Unisex items are in both of the
+    # first two (like the shop's own gender filter); kids' items are in one of them as well.
+    sections={
+        "men": FootshopSection("/uk/2536-colovica-moda-znizki", Gender.MEN),
+        "women": FootshopSection("/uk/2581-zinoca-moda-znizki", Gender.WOMEN),
+        "kids": FootshopSection("/uk/2986-ditaca-moda-znizki", Gender.KIDS),
+    },
+    concurrency=1,
+)
+
+SITES: dict[str, SiteConfig] = {config.code: config for config in (PRM, ANSWEAR_UA, FOOTSHOP_UA)}
 
 
-def get_config(code: str) -> AnswearPlatformConfig:
+def get_config(code: str) -> SiteConfig:
     try:
         return SITES[code]
     except KeyError:
@@ -34,21 +52,16 @@ def get_config(code: str) -> AnswearPlatformConfig:
         raise KeyError(f"Unknown site {code!r}; known sites: {known}") from None
 
 
-def create_adapter(code: str, transport: Transport) -> AnswearPlatformAdapter:
-    return AnswearPlatformAdapter(get_config(code), transport)
-
-
-THUMB_SIZE = (316, 478)
-"""Grid cards: about 40 KB per image."""
-FULL_SIZE = (1200, 1800)
+def create_adapter(code: str, transport: Transport) -> SiteAdapter:
+    config = get_config(code)
+    if isinstance(config, AnswearPlatformConfig):
+        return AnswearPlatformAdapter(config, transport)
+    if isinstance(config, FootshopConfig):
+        return FootshopAdapter(config, transport)
+    raise TypeError(f"No adapter for {type(config).__name__}")
 
 
 def image_urls(code: str, name: str, version: str) -> tuple[str, str] | None:
     """(thumbnail, full size) URLs of a product image, or None for an unknown site."""
     config = SITES.get(code)
-    if config is None:
-        return None
-    return (
-        config.image_url(name, version, *THUMB_SIZE),
-        config.image_url(name, version, *FULL_SIZE),
-    )
+    return config.image_urls(name, version) if config is not None else None

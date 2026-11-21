@@ -5,9 +5,9 @@ from typing import Self
 import pytest
 
 from salevault.scraper import transports
-from salevault.scraper.base import HttpResponse
+from salevault.scraper.base import HttpResponse, TransportMode
 from salevault.scraper.errors import BlockedError, ScrapeError
-from salevault.scraper.sites.answear_platform import TransportMode
+from salevault.scraper.sites.answear_platform import AnswearPlatformAdapter
 
 opened: list[str] = []
 UNUSED_PROFILE = Path("never-created")  # the fakes never touch it
@@ -59,6 +59,7 @@ async def use(mode: TransportMode) -> str:
     async with transports.open_adapter(
         "prm", transport=mode, headless=False, profile_dir=UNUSED_PROFILE
     ) as adapter:
+        assert isinstance(adapter, AnswearPlatformAdapter)
         return type(adapter._transport).__name__
 
 

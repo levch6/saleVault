@@ -1,4 +1,4 @@
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 import pytest
 
@@ -30,6 +30,19 @@ def test_to_minor(amount: Decimal | int, expected: int) -> None:
 )
 def test_percent_off(price: int, reference: int, expected: int) -> None:
     assert percent_off(price, reference) == expected
+
+
+@pytest.mark.parametrize(
+    ("price", "reference", "expected"),
+    [
+        (990000, 1099900, 10),  # 9.99% -> 10, Footshop's badge "-10 %"
+        (655500, 689900, 5),  # 4.99%
+        (32900, 63900, 49),  # 48.5% -> 49
+        (100, 100, 0),
+    ],
+)
+def test_percent_off_can_round_like_the_shop(price: int, reference: int, expected: int) -> None:
+    assert percent_off(price, reference, rounding=ROUND_HALF_UP) == expected
 
 
 def test_search_text_is_casefolded_and_skips_empty_parts() -> None:

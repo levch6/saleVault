@@ -5,7 +5,7 @@ import math
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from decimal import Decimal
-from typing import Any, Literal
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from pydantic.alias_generators import to_camel
@@ -28,13 +28,23 @@ from salevault.scraper.base import (
     Segment,
     SiteInfo,
     Transport,
+    TransportMode,
 )
-from salevault.scraper.errors import BlockedError, ContractError, ScrapeError, TransientError
+from salevault.scraper.errors import BlockedError, ContractError
+from salevault.scraper.sites.common import (
+    ItemNormalizer,
+    clean,
+    open_start_page,
+    raise_for_status,
+    short,
+)
 
 log = logging.getLogger(__name__)
 
 
-TransportMode = Literal["auto", "browser", "http"]
+THUMB_SIZE = (316, 478)
+"""Grid cards: about 40 KB per image."""
+FULL_SIZE = (1200, 1800)
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,6 +87,12 @@ class AnswearPlatformConfig:
 
     image_host: str = "https://img2.ans-media.com"
     """The CDN resizes on the fly to any WxH."""
+
+    def image_urls(self, name: str, version: str) -> tuple[str, str]:
+        return (
+            self.image_url(name, version, *THUMB_SIZE),
+            self.image_url(name, version, *FULL_SIZE),
+        )
 
     def image_url(self, name: str, version: str, width: int, height: int) -> str:
         return f"{self.image_host}/i/{width}x{height}/{name}?v={version}"
@@ -185,10 +201,6 @@ class RawProductsPage(_Api):
 # --- Adapter ---------------------------------------------------------------------------------
 
 
-MAX_INVALID_SHARE = 0.2
-"""A page with more invalid items than this means the item schema changed: stop the run."""
-
-
 class AnswearPlatformAdapter:
     page_size = 80
     max_pages = 125
@@ -197,7 +209,7 @@ class AnswearPlatformAdapter:
         self.config = config
         self.code = config.code
         self._transport = transport
-        self._warned_invalid = False
+        self._normalize_items = ItemNormalizer()
         self._warmed_up = False
 
     @property
@@ -232,15 +244,7 @@ class AnswearPlatformAdapter:
         """Open the start page like a visitor; once per adapter."""
         if self._warmed_up:
             return
-        url = self.config.origin + self.config.warmup_path
-        try:
-            status = await self._transport.open(url)
-        except Exception as exc:  # navigation timeouts, DNS, browser errors
-            raise ScrapeError(f"Could not open {url}: {exc}") from exc
-        if status in (403, 429):
-            raise BlockedError(f"Warm-up page {url} returned HTTP {status}", status=status)
-        if status >= 400 or status == 0:
-            raise ScrapeError(f"Warm-up page {url} returned HTTP {status}", status=status)
+        await open_start_page(self._transport, self.config.origin + self.config.warmup_path)
         self._warmed_up = True
 
     async def fetch_page(self, segment: Segment, page: int) -> PageResult:
@@ -250,7 +254,7 @@ class AnswearPlatformAdapter:
         return self.parse_page(response)
 
     def parse_page(self, response: HttpResponse) -> PageResult:
-        _raise_for_status(response)
+        raise_for_status(response)
         try:
             envelope = RawProductsPage.model_validate_json(response.text)
         except ValidationError as exc:
@@ -258,28 +262,14 @@ class AnswearPlatformAdapter:
                 raise BlockedError("Got an HTML page instead of JSON", raw=response.text) from exc
             raise ContractError(f"Unexpected products response: {exc}", raw=response.text) from exc
 
-        items: list[ProductRecord] = []
-        invalid = 0
-        for raw_item in envelope.items:
-            try:
-                items.append(self.normalize(RawProduct.model_validate(raw_item)))
-            except ValidationError as exc:
-                invalid += 1
-                if not self._warned_invalid:
-                    self._warned_invalid = True
-                    log.warning(
-                        "Skipping invalid item %s: %s", raw_item.get("id"), _short(str(exc))
-                    )
-        if envelope.items and invalid > MAX_INVALID_SHARE * len(envelope.items):
-            # The item schema changed: fail loudly instead of fetching the rest of the shop for
-            # nothing (and keep this response for updating the models).
-            raise ContractError(
-                f"{invalid} of {len(envelope.items)} items do not match the expected schema",
-                raw=response.text,
-            )
+        items, invalid = self._normalize_items(
+            envelope.items,
+            lambda item: self.normalize(RawProduct.model_validate(item)),
+            raw=response.text,
+        )
         return PageResult(
             count=envelope.count,
-            items=tuple(items),
+            items=items,
             facets=_parse_facets(envelope.filters),
             raw=response.text,
             invalid_items=invalid,
@@ -310,13 +300,13 @@ class AnswearPlatformAdapter:
             external_id=raw.id,
             url=f"{self.config.origin}{self.config.base_path}{raw.url}",
             name=raw.name.strip(),
-            subtitle=_clean(raw.subtitle),
+            subtitle=clean(raw.subtitle),
             brand=BrandRef(
                 external_id=raw.product_brand.id,
                 name=raw.product_brand.name.strip(),
                 slug=raw.product_brand.slug,
             ),
-            color=_clean(raw.color.name) if raw.color is not None else None,
+            color=clean(raw.color.name) if raw.color is not None else None,
             image=_image(images.main_image),
             gallery=tuple(ImageRef(name=i.name, version=i.version) for i in images.gallery_images),
             categories=tuple(CategoryRef(external_id=c.id, name=c.name) for c in raw.categories),
@@ -338,17 +328,6 @@ class AnswearPlatformAdapter:
         )
 
 
-def _raise_for_status(response: HttpResponse) -> None:
-    status = response.status
-    if status == 200:
-        return
-    if status == 0 or status >= 500:
-        raise TransientError(f"HTTP {status}: {_short(response.text)}", status=status)
-    if status in (403, 429):
-        raise BlockedError(f"HTTP {status}", status=status, raw=response.text)
-    raise ContractError(f"HTTP {status}: {_short(response.text)}", status=status, raw=response.text)
-
-
 def _parse_category_tree(raw: dict[str, Any] | None) -> tuple[CategoryNode, ...] | None:
     """Flatten `categoryTree.items` (nested `children`) into nodes with parent and depth."""
     if not raw or not isinstance(raw.get("items"), list):
@@ -367,7 +346,7 @@ def _parse_category_tree(raw: dict[str, Any] | None) -> tuple[CategoryNode, ...]
                 depth=depth,
             )
         except KeyError, TypeError:
-            log.warning("Ignoring malformed category tree node: %s", _short(str(item)))
+            log.warning("Ignoring malformed category tree node: %s", short(str(item)))
             continue
         nodes.append(node)
         children = item.get("children") or []
@@ -388,18 +367,9 @@ def _parse_facets(filters: list[dict[str, Any]]) -> Facets:
                 if rng.range_min is not None and rng.range_max is not None:
                     price_range = (math.floor(rng.range_min), math.ceil(rng.range_max))
         except ValidationError as exc:
-            log.warning("Ignoring malformed %r facet: %s", raw.get("name"), _short(str(exc)))
+            log.warning("Ignoring malformed %r facet: %s", raw.get("name"), short(str(exc)))
     return Facets(sex=sex, price_range=price_range)
 
 
 def _image(raw: RawImage | None) -> ImageRef | None:
     return ImageRef(name=raw.name, version=raw.version) if raw is not None else None
-
-
-def _clean(text: str | None) -> str | None:
-    return text.strip() or None if text is not None else None
-
-
-def _short(text: str, limit: int = 300) -> str:
-    text = " ".join(text.split())
-    return text if len(text) <= limit else text[:limit] + "..."

@@ -1,5 +1,6 @@
 """Site-agnostic, normalized product model produced by every site adapter."""
 
+from decimal import ROUND_DOWN
 from enum import IntFlag
 from typing import Self
 
@@ -100,9 +101,11 @@ class ProductRecord(_Frozen):
         price_min30_minor: int | None,
         available_for_buy: bool,
         sizes: tuple[SizeRecord, ...],
+        percent_rounding: str = ROUND_DOWN,
     ) -> Self:
+        """`percent_rounding` is how the shop rounds its discount badges (see `percent_off`)."""
         discount_min30 = (
-            percent_off(price_minor, price_min30_minor)
+            percent_off(price_minor, price_min30_minor, rounding=percent_rounding)
             if price_min30_minor is not None and price_min30_minor > price_minor
             else None
         )
@@ -122,7 +125,7 @@ class ProductRecord(_Frozen):
             price_min30_minor=price_min30_minor,
             available_for_buy=available_for_buy,
             sizes=sizes,
-            discount_pct=percent_off(price_minor, price_regular_minor),
+            discount_pct=percent_off(price_minor, price_regular_minor, rounding=percent_rounding),
             discount_min30_pct=discount_min30,
             savings_minor=max(price_regular_minor - price_minor, 0),
             search_text=build_search_text(brand.name, name, subtitle, color),

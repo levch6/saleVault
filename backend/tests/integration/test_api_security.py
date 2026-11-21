@@ -66,7 +66,12 @@ def test_the_ui_gets_a_strict_script_policy(client: TestClient) -> None:
     }
 
     assert directives["script-src"] == ["'self'"]
-    assert directives["img-src"] == ["'self'", "data:", "https://img2.ans-media.com"]
+    assert directives["img-src"] == [
+        "'self'",
+        "data:",
+        "https://img2.ans-media.com",
+        "https://static.ftshp.digital",
+    ]
     assert directives["frame-ancestors"] == ["'none'"]
     assert "content-security-policy" not in client.get("/api/docs").headers, "Swagger uses a CDN"
 

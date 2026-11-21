@@ -13,9 +13,9 @@ saleVault is a single-user application that runs on your own machine. There is n
 |           |     |   /           built UI (frontend/dist)        |
 +-----------+     |   POST /api/runs --spawn--+                   |
                   |                           v                   |
- Terminal         |  scraper process (python -m salevault scrape) |---> shop catalog API
- just scrape ---->|      stages pages, merges at the end          |     (HTTP client or
-                  |                           |                   |      Chromium)
+ Terminal         |  scraper process (python -m salevault scrape) |---> shop catalog API or
+ just scrape ---->|      stages pages, merges at the end          |     catalog pages (HTTP
+                  |                           |                   |     client or Chromium)
                   |                           v                   |
                   |                SQLite: data/salevault.db      |
                   +----------------------------------------------+

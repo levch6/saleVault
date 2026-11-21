@@ -5,10 +5,10 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+from salevault.scraper.base import SiteAdapter, TransportMode
 from salevault.scraper.browser import BrowserSession
 from salevault.scraper.errors import BlockedError
 from salevault.scraper.http_transport import HttpSession
-from salevault.scraper.sites.answear_platform import AnswearPlatformAdapter, TransportMode
 from salevault.scraper.sites.registry import create_adapter, get_config
 
 log = logging.getLogger(__name__)
@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 @asynccontextmanager
 async def open_adapter(
     code: str, *, transport: TransportMode, headless: bool, profile_dir: Path
-) -> AsyncIterator[AnswearPlatformAdapter]:
+) -> AsyncIterator[SiteAdapter]:
     """`auto` tries HTTP first and uses the browser if the shop does not serve the HTTP client.
 
     That is the only case that switches clients: a 403 on the start page, before any catalog

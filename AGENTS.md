@@ -1,6 +1,6 @@
 # saleVault: instructions for coding agents
 
-Personal, local-only, non-commercial tool: scrapes the sale sections of fashion shops (PRM and Answear.ua) and shows items sorted by discount, biggest first, with filters, price history and favorites. Single user, not hosted, runs in WSL2 (Ubuntu) on Windows 11. The repository is public: everything tracked must be fit for publication (no shop data, neutral wording, nothing personal).
+Personal, local-only, non-commercial tool: scrapes the sale sections of fashion shops (PRM, Answear.ua and Footshop) and shows items sorted by discount, biggest first, with filters, price history and favorites. Single user, not hosted, runs in WSL2 (Ubuntu) on Windows 11. The repository is public: everything tracked must be fit for publication (no shop data, neutral wording, nothing personal).
 
 This file is the shared brief for every coding agent. Tool-specific additions live next to the tool's config (`CLAUDE.md` for Claude Code imports this file). Reusable procedures are skills in `.agents/skills/`.
 
@@ -56,7 +56,9 @@ This file is the shared brief for every coding agent. Tool-specific additions li
 - Writers use `make_session_factory(engine, write=True)` (`BEGIN IMMEDIATE`): a deferred transaction that reads and then writes fails at once, ignoring `busy_timeout` (120 s), when another process wrote in between. The scraper CLI uses a write factory; the API has `SessionDep` (reads) and `WriteSessionDep`, and `RunRepository(write_factory, reader=read_factory)`. Never put the merge, ANALYZE or VACUUM behind a read session.
 - Runs store `pid` and `pid_start` (process start time): never signal a pid without `same_process()`. Dead runs are reaped on reads (`RunRepository.reap_dead`), and a unique index allows one running run per site.
 - Scraper rules in code: refusals are counted per run (`ScrapeRunner._refused`, shared pause), `auto` falls back to the browser only on a 403 at warm-up, `ScrapeError.raw` carries the body to the archive, more than 20% invalid items per page is a `ContractError`, and the request budget is derived from the plan.
-- Transports (`scraper/transports.py`): `auto` (default) = curl_cffi `HttpSession` first, the real browser only if the start page answers 403; `--transport browser|http` to force. Both shops refuse Playwright's headless shell, so the browser path runs a headed window (WSLg).
+- Transports (`scraper/transports.py`): `auto` (default) = curl_cffi `HttpSession` first, the real browser only if the start page answers 403; `--transport browser|http` to force. PRM and Answear.ua refuse Playwright's headless shell, so the browser path runs a headed window (WSLg).
+- Two platforms behind one registry (`scraper/sites/registry.py`, configs implement `SiteConfig`): the Answear platform (PRM, Answear.ua: `POST <base>/api/products`) and Footshop (`footshop.py`). Footshop's robots.txt disallows its API (`*/api/*`, `?ajax=`) and query pagination (`?p=`), so the adapter reads the catalog pages (`/uk/872-znizhki/page-N`, 24 items) and parses the listing JSON embedded in them (Hypernova: `&` and `>` escaped inside an HTML comment); never call those endpoints (ADR-0006). Its segments are the men's, women's and kids' sale sections, no price split; a page number past the end returns the last page, which the adapter treats as empty. Shared adapter helpers live in `scraper/sites/common.py`.
+- Discount rounding is per shop: `ProductRecord.create(percent_rounding=...)`, truncation for the Answear platform, half up for Footshop (its badges show 9.99% as -10%).
 - The API trusts only `SALEVAULT_ALLOWED_HOSTS` (tests add `testserver` in `backend/tests/conftest.py`), refuses non-GET requests from other origins and serves the UI with a strict CSP; unexpected errors are JSON (`internal`), a locked database is 503 (`database_busy`).
 - Filter EXISTS subqueries must use `aliased(...)` tables: facet queries join `product_sizes` / `product_categories` themselves and auto-correlation would break them.
 - Facets: `heavy=false` skips categories and sizes (the slow part at 160k items); the UI asks for both variants in parallel. They are cached in-process, keyed by DB URL + query + data version (count and last finish time of finished runs, favorites, my sizes); anything else that changes facet results must be added to `data_version`.
@@ -67,7 +69,7 @@ This file is the shared brief for every coding agent. Tool-specific additions li
 - UI-triggered runs are separate processes (`api/launcher.py`): `python -m salevault scrape <site> --trigger ui [--resume]`, logs in `data/logs/`.
 - SQLAlchemy 2.1: never pass a `Result` to `dict()` (it has `.keys()`, so dict treats it as a mapping); use a comprehension. `Result.tuples()` is deprecated.
 - CLI tests: Typer forces ANSI styling when `GITHUB_ACTIONS` is set, so assert on `plain(result)` (`tests/unit/test_cli.py`), never on raw `result.output`.
-- Test fixtures must be anonymized: build them with `backend/scripts/make_fixture.py` from `data/raw/...` archives, never copy raw shop responses into the repo.
+- Test fixtures must be anonymized: build them with `backend/scripts/make_fixture.py` from `data/raw/...` archives (it handles both the Answear API format and Footshop listings), never copy raw shop responses into the repo.
 
 ### Frontend
 
@@ -96,7 +98,7 @@ This file is the shared brief for every coding agent. Tool-specific additions li
 
 ## Engineering rules
 
-- **Scraping rules (hard rule, see `docs/concepts/scraping.md`):** read only the public catalog through the shop's own JSON API; keep the default pace (random 0.8-1.6 s per worker); respect robots.txt; on repeated 403/429 stop the run and report, never continue another way. Transports: the HTTP client (curl_cffi with its Chrome profile, the owner's choice) and a stock Playwright Chromium. Off-limits: proxies or IP rotation, CAPTCHA solving, stealth plugins, raising the pace, touching login or account pages. Anything that sends requests to a shop (scrapes, live tests, robots.txt checks) needs the user's go-ahead.
+- **Scraping rules (hard rule, see `docs/concepts/scraping.md`):** read only the public catalog, through the shop's own JSON API or, when robots.txt disallows the API, through its catalog pages (ADR-0006); keep the default pace (random 0.8-1.6 s per worker); respect robots.txt; on repeated 403/429 stop the run and report, never continue another way. Transports: the HTTP client (curl_cffi with its Chrome profile, the owner's choice) and a stock Playwright Chromium. Off-limits: proxies or IP rotation, CAPTCHA solving, stealth plugins, raising the pace, touching login or account pages. Anything that sends requests to a shop (scrapes, live tests, robots.txt checks) needs the user's go-ahead.
 - Money is stored as integer minor units (`*_minor`); the API returns whole UAH.
 - Site-specific logic lives only in adapters (`scraper/sites/`). The core, DB, API and UI stay site-agnostic.
 - Validate external data with Pydantic. On a schema mismatch, fail loudly and save the raw response.

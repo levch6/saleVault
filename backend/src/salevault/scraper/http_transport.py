@@ -27,6 +27,7 @@ class HttpSession:
         self._timeout_s = timeout_s
         self._session: requests.AsyncSession | None = None
         self._referer = self._origin + "/"
+        self._last_page: str | None = None
 
     async def __aenter__(self) -> Self:
         self._session = requests.AsyncSession(impersonate=self._impersonate)
@@ -42,13 +43,20 @@ class HttpSession:
             await self._session.close()
 
     async def open(self, url: str) -> int:
+        response = await self.get(url)
+        if response.status == 0:
+            log.warning("GET %s failed: %s", url, response.text)
+        return response.status
+
+    async def get(self, url: str) -> HttpResponse:
+        """A page view: the previous page is the referer, like when a visitor follows a link."""
+        headers = {"referer": self._last_page} if self._last_page else {}
         try:
-            response = await self._require().get(url, timeout=self._timeout_s)
+            response = await self._require().get(url, headers=headers, timeout=self._timeout_s)
         except RequestException as exc:
-            log.warning("GET %s failed: %s", url, exc)
-            return 0
-        self._referer = url
-        return int(response.status_code)
+            return HttpResponse(status=0, text=str(exc))
+        self._referer = self._last_page = url
+        return HttpResponse(status=int(response.status_code), text=response.text)
 
     async def post_json(
         self, path: str, body: Mapping[str, object], headers: Mapping[str, str]

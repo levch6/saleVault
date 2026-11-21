@@ -176,10 +176,15 @@ class FakeTransport:
     open_status: int = 200
     opened: list[str] = field(default_factory=list)
     posts: list[tuple[str, dict[str, object], dict[str, str]]] = field(default_factory=list)
+    gets: list[str] = field(default_factory=list)
 
     async def open(self, url: str) -> int:
         self.opened.append(url)
         return self.open_status
+
+    async def get(self, url: str) -> HttpResponse:
+        self.gets.append(url)
+        return self.responses.pop(0)
 
     async def post_json(
         self, path: str, body: Mapping[str, object], headers: Mapping[str, str]

@@ -7,9 +7,9 @@ A run reads every item of one shop's sale section and merges it into the catalog
 saleVault is a personal, non-commercial tool. It is built to read a shop the way one person browsing the sale would, only more patiently.
 
 - **Public data only.** It reads the public sale catalog: no login, no account, no checkout, no personal data.
-- **The shop's own API.** It uses the same JSON catalog API that the shop's website calls in your browser, instead of parsing pages.
-- **Polite pace.** Each worker waits a random 0.8 to 1.6 s after every request. PRM uses one worker, Answear.ua two. A run may make at most 25% more requests than the pages it planned (and never more than 10,000).
-- **robots.txt.** The paths it uses (the start page, the sale page, the catalog API) are not disallowed by the shops' `robots.txt`. It never touches disallowed paths such as cart, checkout or account pages.
+- **The shop's own data, the shop's own way.** It uses the same JSON catalog API that the shop's website calls in your browser. When a shop's `robots.txt` disallows that API (Footshop), it reads the catalog pages instead, the same pages a visitor loads, and takes the product list from the data embedded in them.
+- **Polite pace.** Each worker waits a random 0.8 to 1.6 s after every request. PRM and Footshop use one worker, Answear.ua two. A run may make at most 25% more requests than the pages it planned (and never more than 10,000).
+- **robots.txt.** The paths it uses (the start page, the sale page, the catalog API or the catalog pages) are not disallowed by the shops' `robots.txt`. It never touches disallowed paths such as the cart, checkout, account pages or, for Footshop, its API.
 - **Stops when refused.** The first HTTP 403 or 429 of a run pauses every worker for 60 s; any further refusal in the same run stops it and reports it.
 - **No evasion tooling.** No proxies or IP rotation, no CAPTCHA solving, no stealth browser plugins.
 - **Nothing is redistributed.** Data stays in a local database on your machine. The repository contains no scraped data.
@@ -19,14 +19,14 @@ saleVault is a personal, non-commercial tool. It is built to read a shop the way
 A transport is how requests reach the shop. Both apply the rules above in the same way.
 
 - **HTTP** (`http`): curl_cffi, a lightweight HTTP client that uses its built-in Chrome profile, so the shop sees a client with the network fingerprint of a regular Chrome browser. No browser window.
-- **Browser** (`browser`): a real Chromium started by Playwright. It opens the shop's start page like a visitor, then calls the catalog API with `fetch` from that page, exactly as the shop's own frontend does. The shops do not serve Playwright's headless mode, so the browser runs as a normal visible window (through WSLg on Windows).
+- **Browser** (`browser`): a real Chromium started by Playwright. It opens the shop's start page like a visitor, then calls the catalog API with `fetch` from that page, exactly as the shop's own frontend does, or, for a shop read through its catalog pages, navigates from page to page. PRM and Answear.ua do not serve Playwright's headless mode, so the browser runs as a normal visible window (through WSLg on Windows).
 - **Auto** (`auto`, the default): try the HTTP client; if the shop answers its start page with 403, before any catalog request, use the browser. That is the only case that switches clients: a 429 asks for less traffic and stops the run, and so does a network error.
 
-Background: [ADR-0002](../decisions/0002-fetching-through-the-shop-api.md).
+Background: [ADR-0002](../decisions/0002-fetching-through-the-shop-api.md) and, for catalog pages, [ADR-0006](../decisions/0006-reading-catalog-pages.md).
 
 ## Segmentation
 
-The catalog API returns 80 items per page and at most 125 pages for one query, so one query can reach at most 10,000 items. Bigger catalogs are split into segments that each fit:
+The Answear platform's catalog API returns 80 items per page and at most 125 pages for one query, so one query can reach at most 10,000 items. Bigger catalogs are split into segments that each fit:
 
 1. A first request without filters returns the total count, the gender facet and the price range.
 2. The catalog is split by gender. Any segment above 9,600 items (96% of the cap, leaving room for changes during the run) is split in two by price, `[low, mid]` and `[mid + 1, high]`, until it fits.
@@ -34,6 +34,8 @@ The catalog API returns 80 items per page and at most 125 pages for one query, s
 4. Inside a segment, pages are fetched in the shop's popularity order, which keeps pages the most stable.
 
 Splitting by gender first also tags items: an item seen in both the men and women segments is unisex. Details and alternatives: [ADR-0003](../decisions/0003-segmentation-by-gender-and-price.md).
+
+Footshop's catalog pages hold 24 items each and have no depth limit. Its segments are the sale sections that the shop's own men's, women's and kids' menus link to; there is no price split. The first request is the sale page itself, which gives the total count.
 
 ## Run lifecycle
 
@@ -58,7 +60,9 @@ Transient problems (timeouts, network errors, 5xx) are retried up to 4 times wit
 
 ## Categories
 
-The API can return the shop's full category tree on the first request; the run stores it and the merge takes parents and depth from it. Each item is linked to its categories and all their ancestors, so filtering on a branch finds everything below it. Background: [ADR-0005](../decisions/0005-category-tree-from-the-api.md).
+The Answear platform's API can return the shop's full category tree on the first request; the run stores it and the merge takes parents and depth from it. Each item is linked to its categories and all their ancestors, so filtering on a branch finds everything below it. Background: [ADR-0005](../decisions/0005-category-tree-from-the-api.md).
+
+Footshop's listing names only an item's main category (for example men's shoes or wallets), so its categories form a flat list.
 
 ## Memory
 

@@ -1,0 +1,455 @@
+{
+  "data": {
+    "state": {
+      "listing_type": "category",
+      "listing_type_id": 872,
+      "filters": {
+        "sex": {
+          "position": 1,
+          "type": "sex",
+          "name": "Sex",
+          "items": [
+            {
+              "id": "male",
+              "name": "Men",
+              "count": 11265
+            },
+            {
+              "id": "female",
+              "name": "Women",
+              "count": 8953
+            }
+          ]
+        },
+        "color": {
+          "position": 5,
+          "type": "color",
+          "name": "Color",
+          "items": [
+            {
+              "id": "43",
+              "name": "color 1",
+              "name_en": "color 1",
+              "count": 5568
+            },
+            {
+              "id": "42",
+              "name": "color 2",
+              "name_en": "color 2",
+              "count": 2232
+            },
+            {
+              "id": "41",
+              "name": "color 3",
+              "name_en": "color 3",
+              "count": 1778
+            }
+          ]
+        }
+      },
+      "products": {
+        "total": 15192,
+        "pagination": {
+          "page": 1,
+          "total_pages": 633,
+          "items_per_page": 24
+        },
+        "items": [
+          {
+            "id": 516082,
+            "code": "TEST-0001",
+            "code_original": "",
+            "name": "Brand 1 Product 1 Color 1",
+            "title": "Brand 1 Product 1",
+            "description": "",
+            "url": "category-5/516082-product-1.html",
+            "price": {
+              "value": 9900,
+              "value_without_vat": 8249.25,
+              "value_without_reduction": 10999,
+              "value_without_reduction_without_vat": 9165.83,
+              "double_discount_price": 8910,
+              "vat": 1650.75,
+              "czk": 4679,
+              "czk_without_vat": 3866.94,
+              "czk_without_reduction": 5199,
+              "czk_without_reduction_without_vat": 4296.69,
+              "czk_vat": 812.06,
+              "sale": {
+                "active": true,
+                "percents": 10,
+                "sale_value": 1099,
+                "sale_value_czk": 520,
+                "sale_without_vat": 916.58,
+                "sale_without_vat_czk": 429.75,
+                "sale_vat": 182.42,
+                "sale_vat_czk": 90.25
+              },
+              "vat_rate": 0.2,
+              "currency_code": "UAH",
+              "dual_price_value": null,
+              "dual_price_currency_code": null
+            },
+            "sale": {
+              "active": true,
+              "percents": 10,
+              "sale_value": 1099,
+              "sale_value_czk": 520,
+              "sale_without_vat": 916.58,
+              "sale_without_vat_czk": 429.75,
+              "sale_vat": 182.42,
+              "sale_vat_czk": 90.25
+            },
+            "manufacturer": {
+              "id": 33,
+              "name": "Brand 1"
+            },
+            "image": "https://static.ftshp.digital/img/p/9/0/0/0/0/1/1/9000011-thickbox.webp",
+            "image_woman": "",
+            "last_image": "https://static.ftshp.digital/img/p/9/0/0/0/0/1/3/9000013-full_product.webp",
+            "video": [],
+            "stickers": [],
+            "badges": [
+              {
+                "id": "sale",
+                "value": "-10 %",
+                "color": "red",
+                "icon": null,
+                "type": "price",
+                "url": null,
+                "description": ""
+              }
+            ],
+            "attributes": {
+              "variants": [
+                {
+                  "name": "40",
+                  "url": "category-5/516082-product-1.html?size=25",
+                  "ean": "0000003627403",
+                  "package_id": 3627403
+                },
+                {
+                  "name": "40.5",
+                  "url": "category-5/516082-product-1.html?size=26",
+                  "ean": "0000003627409",
+                  "package_id": 3627409
+                },
+                {
+                  "name": "41",
+                  "url": "category-5/516082-product-1.html?size=27",
+                  "ean": "0000003627415",
+                  "package_id": 3627415
+                },
+                {
+                  "name": "42",
+                  "url": "category-5/516082-product-1.html?size=28",
+                  "ean": "0000003627421",
+                  "package_id": 3627421
+                },
+                {
+                  "name": "42.5",
+                  "url": "category-5/516082-product-1.html?size=29",
+                  "ean": "0000003627424",
+                  "package_id": 3627424
+                },
+                {
+                  "name": "43",
+                  "url": "category-5/516082-product-1.html?size=30",
+                  "ean": "0000003627430",
+                  "package_id": 3627430
+                },
+                {
+                  "name": "44",
+                  "url": "category-5/516082-product-1.html?size=31",
+                  "ean": "0000003627436",
+                  "package_id": 3627436
+                },
+                {
+                  "name": "44.5",
+                  "url": "category-5/516082-product-1.html?size=33",
+                  "ean": "0000003627442",
+                  "package_id": 3627442
+                },
+                {
+                  "name": "45",
+                  "url": "category-5/516082-product-1.html?size=34",
+                  "ean": "0000003627448",
+                  "package_id": 3627448
+                },
+                {
+                  "name": "45.5",
+                  "url": "category-5/516082-product-1.html?size=35",
+                  "ean": "0000003627454",
+                  "package_id": 3627454
+                },
+                {
+                  "name": "46",
+                  "url": "category-5/516082-product-1.html?size=36",
+                  "ean": "0000003627460",
+                  "package_id": 3627460
+                }
+              ]
+            },
+            "sold_out": false,
+            "category": 5,
+            "main_category": {
+              "id": 5,
+              "name": "Category 5",
+              "name_en": "Category 5",
+              "short_name": "",
+              "short_name_en": "",
+              "slug": "category-5",
+              "url": "5-category-5"
+            },
+            "in_stock": true,
+            "color": "color 1",
+            "color_en": "color 1",
+            "category_name_en": "Category 5",
+            "breadcrumbs": [],
+            "boosting": null,
+            "public_voucher": null,
+            "sport_only": false,
+            "mobile_app_only": false,
+            "upcoming": null,
+            "is_manually_boosted": false,
+            "title_without_manufacturer": "Product 1"
+          },
+          {
+            "id": 424480,
+            "code": "TEST-0002",
+            "code_original": "",
+            "name": "Brand 2 Product 2 Color 2",
+            "title": "Brand 2 Product 2",
+            "description": "",
+            "url": "category-6/424480-product-2.html",
+            "price": {
+              "value": 6555,
+              "value_without_vat": 5461.71,
+              "value_without_reduction": 6899,
+              "value_without_reduction_without_vat": 5749.17,
+              "double_discount_price": null,
+              "vat": 1093.29,
+              "czk": 3389,
+              "czk_without_vat": 2800.83,
+              "czk_without_reduction": 3559,
+              "czk_without_reduction_without_vat": 2941.32,
+              "czk_vat": 588.17,
+              "sale": {
+                "active": true,
+                "percents": 5,
+                "sale_value": 344,
+                "sale_value_czk": 170,
+                "sale_without_vat": 287.46,
+                "sale_without_vat_czk": 140.49,
+                "sale_vat": 56.54,
+                "sale_vat_czk": 29.51
+              },
+              "vat_rate": 0.2,
+              "currency_code": "UAH",
+              "dual_price_value": null,
+              "dual_price_currency_code": null
+            },
+            "sale": {
+              "active": true,
+              "percents": 5,
+              "sale_value": 344,
+              "sale_value_czk": 170,
+              "sale_without_vat": 287.46,
+              "sale_without_vat_czk": 140.49,
+              "sale_vat": 56.54,
+              "sale_vat_czk": 29.51
+            },
+            "manufacturer": {
+              "id": 406,
+              "name": "Brand 2"
+            },
+            "image": "https://static.ftshp.digital/img/p/9/0/0/0/0/2/1/9000021-thickbox.jpg",
+            "image_woman": "",
+            "last_image": "https://static.ftshp.digital/img/p/9/0/0/0/0/2/3/9000023-full_product.jpg",
+            "video": [],
+            "stickers": [],
+            "badges": [
+              {
+                "id": "sale",
+                "value": "-5 %",
+                "color": "red",
+                "icon": null,
+                "type": "price",
+                "url": null,
+                "description": ""
+              }
+            ],
+            "attributes": {
+              "variants": [
+                {
+                  "name": "36",
+                  "url": "category-6/424480-product-2.html?size=21",
+                  "ean": "0000002952859",
+                  "package_id": 2952859
+                },
+                {
+                  "name": "37",
+                  "url": "category-6/424480-product-2.html?size=23",
+                  "ean": "0000002952895",
+                  "package_id": 2952895
+                },
+                {
+                  "name": "38",
+                  "url": "category-6/424480-product-2.html?size=25",
+                  "ean": "0000002952877",
+                  "package_id": 2952877
+                },
+                {
+                  "name": "39",
+                  "url": "category-6/424480-product-2.html?size=27",
+                  "ean": "0000002952883",
+                  "package_id": 2952883
+                },
+                {
+                  "name": "40",
+                  "url": "category-6/424480-product-2.html?size=29",
+                  "ean": "0000002952865",
+                  "package_id": 2952865
+                },
+                {
+                  "name": "41",
+                  "url": "category-6/424480-product-2.html?size=31",
+                  "ean": "0000002952871",
+                  "package_id": 2952871
+                },
+                {
+                  "name": "42",
+                  "url": "category-6/424480-product-2.html?size=34",
+                  "ean": "0000002952913",
+                  "package_id": 2952913
+                }
+              ]
+            },
+            "sold_out": false,
+            "category": 6,
+            "main_category": {
+              "id": 6,
+              "name": "Category 6",
+              "name_en": "Category 6",
+              "short_name": "",
+              "short_name_en": "",
+              "slug": "category-6",
+              "url": "6-category-6"
+            },
+            "in_stock": true,
+            "color": "color 2",
+            "color_en": "color 2",
+            "category_name_en": "Category 6",
+            "breadcrumbs": [],
+            "boosting": null,
+            "public_voucher": null,
+            "sport_only": false,
+            "mobile_app_only": false,
+            "upcoming": null,
+            "is_manually_boosted": false,
+            "title_without_manufacturer": "Product 2"
+          },
+          {
+            "id": 459277,
+            "code": "TEST-0003",
+            "code_original": "",
+            "name": "Brand 3 Product 3 Color 3",
+            "title": "Brand 3 Product 3",
+            "description": "",
+            "url": "category-575/459277-product-3.html",
+            "price": {
+              "value": 861,
+              "value_without_vat": 717.21,
+              "value_without_reduction": 2459,
+              "value_without_reduction_without_vat": 2049.17,
+              "double_discount_price": null,
+              "vat": 143.79,
+              "czk": 439,
+              "czk_without_vat": 362.81,
+              "czk_without_reduction": 1259,
+              "czk_without_reduction_without_vat": 1040.5,
+              "czk_vat": 76.19,
+              "sale": {
+                "active": true,
+                "percents": 65,
+                "sale_value": 1598,
+                "sale_value_czk": 820,
+                "sale_without_vat": 1331.96,
+                "sale_without_vat_czk": 677.69,
+                "sale_vat": 266.04,
+                "sale_vat_czk": 142.31
+              },
+              "vat_rate": 0.2,
+              "currency_code": "UAH",
+              "dual_price_value": null,
+              "dual_price_currency_code": null
+            },
+            "sale": {
+              "active": true,
+              "percents": 65,
+              "sale_value": 1598,
+              "sale_value_czk": 820,
+              "sale_without_vat": 1331.96,
+              "sale_without_vat_czk": 677.69,
+              "sale_vat": 266.04,
+              "sale_vat_czk": 142.31
+            },
+            "manufacturer": {
+              "id": 802,
+              "name": "Brand 3"
+            },
+            "image": "https://static.ftshp.digital/img/p/9/0/0/0/0/3/1/9000031-thickbox.jpg",
+            "image_woman": "",
+            "last_image": "https://static.ftshp.digital/img/p/9/0/0/0/0/3/3/9000033-full_product.jpg",
+            "video": [],
+            "stickers": [],
+            "badges": [
+              {
+                "id": "sale",
+                "value": "-65 %",
+                "color": "red",
+                "icon": null,
+                "type": "price",
+                "url": null,
+                "description": ""
+              }
+            ],
+            "attributes": {
+              "variants": [
+                {
+                  "name": "Universal",
+                  "url": "category-575/459277-product-3.html?size=73",
+                  "ean": "0000003180298",
+                  "package_id": 3180298
+                }
+              ]
+            },
+            "sold_out": false,
+            "category": 575,
+            "main_category": {
+              "id": 575,
+              "name": "Category 575",
+              "name_en": "Category 575",
+              "short_name": "",
+              "short_name_en": "",
+              "slug": "category-575",
+              "url": "575-category-575"
+            },
+            "in_stock": true,
+            "color": "color 3",
+            "color_en": "color 3",
+            "category_name_en": "Category 575",
+            "breadcrumbs": [],
+            "boosting": null,
+            "public_voucher": null,
+            "sport_only": false,
+            "mobile_app_only": false,
+            "upcoming": null,
+            "is_manually_boosted": false,
+            "title_without_manufacturer": "Product 3"
+          }
+        ]
+      }
+    }
+  }
+}

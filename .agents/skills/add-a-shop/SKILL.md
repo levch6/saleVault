@@ -12,7 +12,7 @@ Every step that sends a request to the shop (robots.txt, a dry run, a live test,
 Ask the user for the shop and confirm with them, before writing code:
 
 - The sale catalog is public: no login, no account, no personal data.
-- `robots.txt` does not disallow the start page, the sale page or the catalog API path for `User-agent: *`. Fetch it once (with the user's OK) through the HTTP transport and record what you checked in `.notes/research/`.
+- `robots.txt` does not disallow the start page, the sale page or the catalog API path for `User-agent: *`. Fetch it once (with the user's OK) through the HTTP transport and record what you checked in `.notes/research/`. If it disallows the API but allows the catalog pages, read the pages (see Footshop and ADR-0006); never call a disallowed path.
 - The user has looked at the shop's terms of use.
 
 If the shop answers with repeated 403 or 429, stop: it does not want automated access.
@@ -20,7 +20,7 @@ If the shop answers with repeated 403 or 429, stop: it does not want automated a
 ## 2. Platform
 
 - **Answear platform** (catalog at `<base>/api/products`, `x-tamago-*` headers, 80 items per page, 125 pages): add an `AnswearPlatformConfig` to `scraper/sites/registry.py` and to `SITES`. Fields are described in `docs/guides/adding-a-shop.md`. Start with `concurrency=1`, `headless=False`, `transport="auto"`, `sort=""`, and map the shop's `sex` facet codes in `sex_genders`.
-- **Another platform**: write an adapter that implements `SiteAdapter` (`scraper/base.py`), talks only through a `Transport`, validates every response with Pydantic models, raises `BlockedError` on 403/429 and `ContractError` with `raw=` on a mismatch. Extend `create_adapter`. Write an ADR in `docs/decisions/`.
+- **Another platform**: write a config implementing `SiteConfig` and an adapter implementing `SiteAdapter` (`scraper/base.py`); `scraper/sites/footshop.py` is an example. The adapter talks only through a `Transport` (`get` for pages, `post_json` for an API), reuses `scraper/sites/common.py`, validates every response with Pydantic models, raises `BlockedError` on 403/429 and `ContractError` with `raw=` on a mismatch. Add the config to `SITES`, extend `create_adapter`, write an ADR in `docs/decisions/`, and extend `scripts/make_fixture.py` for the new raw format.
 
 ## 3. Smoke run (with the user's OK)
 
@@ -28,7 +28,7 @@ If the shop answers with repeated 403 or 429, stop: it does not want automated a
 just scrape <code> --dry-run --max-pages 1
 ```
 
-Check the summary: segments, coverage of the sampled pages, discounts that match the shop's badges, no invalid items.
+Check the summary: segments, coverage of the sampled pages, no invalid items. Compare `discount_pct` with the shop's own percent for every archived item: shops round differently (the Answear platform truncates, Footshop rounds half up; `percent_rounding` in `ProductRecord.create`).
 
 ## 4. Fixtures and tests
 
@@ -37,7 +37,7 @@ cd backend
 uv run python scripts/make_fixture.py ../data/raw/<code>/<run>/<segment>__p001.json.gz tests/fixtures/<platform>/<name>.json --items 6
 ```
 
-- Inspect the output before committing: no shop text may remain (`grep -P '[\x{0400}-\x{04FF}]'` must find nothing; promo badges become `Promo`, sizes in the shop's language become `One size`). Never commit raw responses.
+- Inspect the output before committing: no shop text may remain (`grep -P '[\x{0400}-\x{04FF}]|\\u04[0-9a-f]{2}'` must find nothing, since fixtures are written as escaped ASCII; promo badges become `Promo`, sizes in the shop's language become `One size`). Never commit raw responses.
 - Add adapter tests for anything shop-specific (gender mapping, availability values, prices). Add a live test in `backend/tests/live/` (marker `live`) only if the shop needs one; never run it without the user's OK.
 
 ## 5. Docs and checks

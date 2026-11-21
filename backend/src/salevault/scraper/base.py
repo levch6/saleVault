@@ -2,9 +2,12 @@
 
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
-from typing import Protocol
+from typing import Literal, Protocol
 
 from salevault.domain.models import CategoryNode, Gender, ProductRecord
+
+TransportMode = Literal["auto", "browser", "http"]
+"""`auto`: curl_cffi first, the browser if the start page refuses it (see transports.py)."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -25,10 +28,15 @@ class HttpResponse:
 
 
 class Transport(Protocol):
-    """How an adapter talks to a site. Implemented by `BrowserSession`; faked in tests."""
+    """How an adapter talks to a site. Implemented by `HttpSession` and `BrowserSession`; faked
+    in tests."""
 
     async def open(self, url: str) -> int:
         """Navigate like a regular visitor; returns the HTTP status of the page."""
+        ...
+
+    async def get(self, url: str) -> HttpResponse:
+        """Load a page like a visitor and return its HTML as served (status 0 on network errors)."""
         ...
 
     async def post_json(
@@ -82,6 +90,34 @@ class PageResult:
     """Items skipped because they failed validation."""
     category_tree: tuple[CategoryNode, ...] | None = None
     """The shop's category tree, when the request asked for it (root page only)."""
+
+
+class SiteConfig(Protocol):
+    """Static facts about a supported shop, shared by the CLI, the API and the adapter."""
+
+    @property
+    def code(self) -> str: ...
+    @property
+    def display_name(self) -> str: ...
+    @property
+    def origin(self) -> str: ...
+    @property
+    def concurrency(self) -> int: ...
+    @property
+    def headless(self) -> bool: ...
+    @property
+    def transport(self) -> TransportMode: ...
+    @property
+    def image_host(self) -> str:
+        """Origin of the product pictures (allowed by the UI's Content-Security-Policy)."""
+        ...
+
+    @property
+    def site_info(self) -> SiteInfo: ...
+
+    def image_urls(self, name: str, version: str) -> tuple[str, str]:
+        """(grid thumbnail, full size) URLs of a stored image reference."""
+        ...
 
 
 class SiteAdapter(Protocol):

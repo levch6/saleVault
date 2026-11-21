@@ -8,7 +8,7 @@ Prices are stored as integers in minor units (kopecks) in columns ending in `_mi
 
 | Value | Definition |
 |---|---|
-| Discount | `floor(100 * (1 - price / regular price))`. Truncated, so it matches the badge on the shop site. |
+| Discount | `100 * (1 - price / regular price)` in whole percent, rounded the way the shop rounds its own badges: truncated for PRM and Answear.ua (48.5% is -48%), rounded half up for Footshop (9.99% is -10%). |
 | Honest discount | the same formula against the lowest price of the last 30 days, when the shop reports one that is higher than the current price; otherwise empty. It shows whether a sale price is really lower than the recent normal price. |
 | Savings | regular price minus current price. |
 
@@ -39,7 +39,7 @@ The sidebar filters **New since last run** and **Got cheaper** use the same defi
 
 ## Sizes
 
-Every size of an item is stored with the shop's availability. `IN_STOCK` and `LAST` count as in stock; other values do not. The size filter and **Only my sizes** match sizes in stock only. Saved sizes are compared by label (for example `M`, `43`, `W32`) and are highlighted on the cards.
+Every size of an item is stored with the shop's availability. `IN_STOCK` and `LAST` count as in stock; other values do not. Footshop lists only the sizes that can be bought, so all of its listed sizes count as in stock. The size filter and **Only my sizes** match sizes in stock only. Saved sizes are compared by label (for example `M`, `43`, `W32`) and are highlighted on the cards.
 
 ## Favorites
 
