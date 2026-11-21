@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from sqlalchemy import ColumnElement, and_, exists, false, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 
 from salevault.catalog.schemas import GENDER_BITS, CatalogQuery
 from salevault.db.models import Favorite, Product, ProductCategory, ProductSize, ScrapeRun
@@ -86,11 +86,9 @@ class CatalogFilter:
         if q.brand and skip != "brand":
             conds.append(Product.brand_id.in_(q.brand))
         if q.category and skip != "category":
+            link = aliased(ProductCategory)  # see _has_size_in_stock
             conds.append(
-                exists().where(
-                    ProductCategory.product_id == Product.id,
-                    ProductCategory.category_id.in_(q.category),
-                )
+                exists().where(link.product_id == Product.id, link.category_id.in_(q.category))
             )
         if q.size and skip != "size":
             conds.append(_has_size_in_stock(q.size))
@@ -139,8 +137,11 @@ class CatalogFilter:
 
 
 def _has_size_in_stock(labels: Sequence[str]) -> ColumnElement[bool]:
+    # An alias, so the subquery still works when the outer query joins product_sizes itself
+    # (the size facet): otherwise auto-correlation leaves the EXISTS without a FROM.
+    size = aliased(ProductSize)
     return exists().where(
-        ProductSize.product_id == Product.id,
-        ProductSize.in_stock.is_(True),
-        ProductSize.label.in_(labels),
+        size.product_id == Product.id,
+        size.in_stock.is_(True),
+        size.label.in_(labels),
     )
