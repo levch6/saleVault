@@ -16,7 +16,7 @@ Personal, local use only. Nothing is hosted; data stays in `data/`.
 ## Requirements
 
 - Linux or WSL2 (built on Ubuntu under Windows 11; WSLg shows the browser window when a run needs one)
-- [uv](https://docs.astral.sh/uv/), Node.js with [pnpm](https://pnpm.io/), [just](https://just.systems/)
+- [uv](https://docs.astral.sh/uv/), Node.js 26 (`.node-version`) with [pnpm](https://pnpm.io/) 12, [just](https://just.systems/)
 
 Python 3.15, the Playwright Chromium build and all packages are installed by `just setup`.
 
@@ -96,11 +96,16 @@ API docs (OpenAPI) are served at `/api/docs`. Benchmarks: `backend/scripts/make_
 | Frontend | Vite, React 19 (with React Compiler), TypeScript 7, Tailwind CSS, shadcn/ui, TanStack Query and Router, Recharts |
 | Quality | ruff, mypy (strict), pytest; Biome, tsc, Vitest |
 
+## Disclaimer
+
+A personal project, not affiliated with or endorsed by PRM or Answear. It reads the same public catalog data that the shops' own pages load, slowly, and keeps it only on your machine. Check a shop's terms of use before scraping it, and do not redistribute its data.
+
 ## Layout
 
 ```
 backend/    Python package `salevault`: scraper, storage, catalog queries, HTTP API, CLI
 frontend/   single-page app
 justfile    all project commands
+.github/    CI: lint, type check, tests and UI build on every push
 data/       runtime data (database, backups, archives, logs); not tracked
 ```

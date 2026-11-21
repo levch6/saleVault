@@ -32,6 +32,7 @@ Personal, local-only tool: scrapes the sale sections of fashion shops (PRM.com, 
 - `just start` opens the browser once the server is healthy; `just shortcut` puts a `saleVault.lnk` with the app icon on the Windows desktop, pointing at a `.bat` and `.ico` in `%LOCALAPPDATA%\saleVault` (only run it when the user asks)
 - Logo: `frontend/public/favicon.svg` is the only source (black and white, inverted for dark browser themes); after changing it, `cd backend && uv run python scripts/make_icons.py` renders `favicon.ico`
 - `just fmt`, `just build`, `just gen-api`
+- CI (`.github/workflows/check.yml`): `just check` + `just build` on push to main and on PRs. Keep it offline (no live tests, no Playwright browsers). Node and pnpm versions come from `.node-version` and `packageManager` in `frontend/package.json`
 - New migration: `cd backend && uv run alembic revision --autogenerate -m "..."`, then review the file in `src/salevault/db/migrations/versions/`
 - Live tests (hit the real site, open a browser window): `cd backend && uv run pytest -m live`
 
