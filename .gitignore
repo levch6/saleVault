@@ -9,6 +9,7 @@
 .env.*
 !.env.example
 *.local
+.claude/settings.local.json
 
 # Python
 __pycache__/
