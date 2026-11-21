@@ -172,7 +172,7 @@ export interface paths {
         put?: never;
         /**
          * Start Run
-         * @description Start a scrape in the background; returns once the run is registered.
+         * @description Start a scrape in the background (or resume one); returns once the run is registered.
          */
         post: operations["start_run"];
         delete?: never;
@@ -535,6 +535,11 @@ export interface components {
             active_products: number;
             last_completed: components["schemas"]["RunOut"] | null;
             latest: components["schemas"]["RunOut"] | null;
+            /**
+             * Resumable
+             * @default false
+             */
+            resumable: boolean;
         };
         /** SizeDetail */
         SizeDetail: {
@@ -580,6 +585,12 @@ export interface components {
              * @description Override the site's browser mode
              */
             headed?: boolean | null;
+            /**
+             * Resume
+             * @description Continue the site's last failed or cancelled run (one site only)
+             * @default false
+             */
+            resume: boolean;
         };
         /** StartRunOut */
         StartRunOut: {

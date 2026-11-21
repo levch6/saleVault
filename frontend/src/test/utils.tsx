@@ -139,6 +139,7 @@ export function site(overrides: Partial<SiteOut> = {}): SiteOut {
     active_products: 100,
     last_completed: last,
     latest: last,
+    resumable: false,
     ...overrides,
   }
 }

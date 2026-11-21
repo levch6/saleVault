@@ -10,7 +10,10 @@ from sqlalchemy.orm import Session, sessionmaker
 from salevault.api.app import create_app
 from salevault.api.launcher import CommandFactory, scrape_command
 from salevault.config import Settings
+from salevault.db.runs import DbRunSink, RunRepository
 from salevault.domain.models import Gender
+from salevault.scraper.base import Facets, PageResult, Segment
+from salevault.scraper.runner import SegmentPlan
 from salevault.scraper.sites.registry import PRM
 from tests.integration.helpers import product, seed_run
 
@@ -36,11 +39,20 @@ repo.finish(run_id, "success")
 """
 
 
-def fake_scraper(_site: str, _headed: bool | None) -> list[str]:
-    return [sys.executable, "-c", FAKE_SCRAPER]
+# Like FAKE_SCRAPER, but continues the latest interrupted run the way `--resume` does.
+FAKE_RESUMER = FAKE_SCRAPER.replace(
+    'run_id = repo.start(PRM.site_info, trigger="ui")',
+    'run_id, _state = repo.resume(PRM.site_info, trigger="ui")',
+)
+launched: list[list[str]] = []
 
 
-def crashing_scraper(_site: str, _headed: bool | None) -> list[str]:
+def fake_scraper(site: str, headed: bool | None, resume: bool = False) -> list[str]:
+    launched.append(scrape_command(site, headed, resume))
+    return [sys.executable, "-c", FAKE_RESUMER if resume else FAKE_SCRAPER]
+
+
+def crashing_scraper(_site: str, _headed: bool | None, _resume: bool = False) -> list[str]:
     return [sys.executable, "-c", "import sys; print('boom: no browser'); sys.exit(3)"]
 
 
@@ -79,6 +91,7 @@ def test_sites_list_known_shops_before_any_run(client: TestClient) -> None:
         "active_products": 0,
         "last_completed": None,
         "latest": None,
+        "resumable": False,
     }
 
 
@@ -148,3 +161,41 @@ def test_default_command_runs_the_cli_in_ui_mode() -> None:
     ]
     assert scrape_command("prm", True)[-1] == "--headed"
     assert scrape_command("prm", False)[-1] == "--headless"
+
+
+def interrupted_run(client: TestClient) -> int:
+    """A cancelled PRM run that kept its plan and one staged page, like a Cancel in the UI."""
+    factory: sessionmaker[Session] = client.app.state.write_factory  # type: ignore[attr-defined]
+    repo = RunRepository(factory)
+    run_id = repo.start(PRM.site_info, trigger="ui")
+    plan = [SegmentPlan(segment=Segment(), count=100, pages=2, full_pages=2, truncated=False)]
+    sink = DbRunSink(factory, run_id)
+    sink.on_plan(100, plan)
+    page = PageResult(count=100, items=(product("a", 10, regular=20),), facets=Facets(), raw="{}")
+    sink.on_page(Segment(), 1, Gender.MEN, page)
+    repo.finish(run_id, "cancelled", error="Cancelled")
+    return run_id
+
+
+def test_an_interrupted_run_can_be_resumed_from_the_app(client: TestClient) -> None:
+    run_id = interrupted_run(client)
+    sites = {s["code"]: s for s in client.get("/api/sites").json()}
+    assert sites["prm"]["resumable"] is True
+    launched.clear()
+
+    response = client.post("/api/runs", json={"site": "prm", "resume": True})
+
+    assert response.status_code == 202, response.text
+    assert response.json()["run_ids"] == [run_id], "the same run goes on"
+    assert "--resume" in launched[0]
+    assert client.get(f"/api/runs/{run_id}").json()["status"] == "running"
+    client.post(f"/api/runs/{run_id}/cancel")
+    wait_for_status(client, run_id, "cancelled")
+
+
+def test_resume_needs_an_interrupted_run_and_one_site(client: TestClient) -> None:
+    nothing = client.post("/api/runs", json={"site": "prm", "resume": True})
+    every = client.post("/api/runs", json={"site": "all", "resume": True})
+
+    assert (nothing.status_code, nothing.json()["code"]) == (409, "nothing_to_resume")
+    assert (every.status_code, every.json()["code"]) == (422, "resume_needs_one_site")

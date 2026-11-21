@@ -148,14 +148,21 @@ export function RefreshMenu({
   label?: string
 }) {
   const start = useStartRun()
-  const run = (code: string) =>
-    start.mutate(code, {
-      onSuccess: (result) => {
-        toast.info('Scraping started. A browser window may appear for a moment.')
-        for (const reason of result.skipped ?? []) toast.warning(reason)
+  const run = (code: string, resume = false) =>
+    start.mutate(
+      { site: code, resume },
+      {
+        onSuccess: (result) => {
+          toast.info(
+            `${resume ? 'Resuming the run' : 'Scraping started'}. A browser window may appear for a moment.`,
+          )
+          for (const reason of result.skipped ?? []) toast.warning(reason)
+        },
+        onError: (e) => toast.error(e.message),
       },
-      onError: (e) => toast.error(e.message),
-    })
+    )
+  // A cancelled or failed run keeps its fetched pages: offer to go on instead of starting over.
+  const resumable = sites.filter((s) => s.resumable && s.latest)
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -164,6 +171,20 @@ export function RefreshMenu({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
+        {resumable.length ? (
+          <>
+            <DropdownMenuLabel>Continue where it stopped</DropdownMenuLabel>
+            {resumable.map((s) => (
+              <DropdownMenuItem key={`resume-${s.code}`} onSelect={() => run(s.code, true)}>
+                Resume {s.name}
+                <span className="ml-auto text-xs text-muted-foreground tabular-nums">
+                  {s.latest?.pages_done}/{s.latest?.pages_total ?? '?'} pages
+                </span>
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+          </>
+        ) : null}
         <DropdownMenuLabel>Scrape the sale now</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {sites.length > 1 ? (
@@ -173,9 +194,11 @@ export function RefreshMenu({
           <DropdownMenuItem key={s.code} onSelect={() => run(s.code)}>
             {s.name}
             <span className="ml-auto text-xs text-muted-foreground">
-              {s.last_completed
-                ? `last ${formatDuration(s.last_completed.started_at, s.last_completed.finished_at)}`
-                : ''}
+              {s.resumable
+                ? 'starts over'
+                : s.last_completed
+                  ? `last ${formatDuration(s.last_completed.started_at, s.last_completed.finished_at)}`
+                  : ''}
             </span>
           </DropdownMenuItem>
         ))}

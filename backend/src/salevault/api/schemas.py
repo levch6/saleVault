@@ -60,6 +60,8 @@ class SiteOut(BaseModel):
     """Latest success or partial run: the data the catalog shows."""
     latest: RunOut | None
     """Latest run of any status (running, failed...)."""
+    resumable: bool = False
+    """The latest run failed or was cancelled and its fetched pages are kept: it can go on."""
 
 
 class StartRunIn(BaseModel):
@@ -67,6 +69,9 @@ class StartRunIn(BaseModel):
 
     site: str = Field(description="Site code, or 'all' for every known site")
     headed: bool | None = Field(None, description="Override the site's browser mode")
+    resume: bool = Field(
+        False, description="Continue the site's last failed or cancelled run (one site only)"
+    )
 
 
 class StartRunOut(BaseModel):

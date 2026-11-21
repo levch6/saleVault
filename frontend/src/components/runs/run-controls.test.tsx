@@ -73,7 +73,11 @@ describe('RunControls', () => {
     await user.click(await screen.findByRole('menuitem', { name: 'All shops' }))
 
     await waitFor(() =>
-      expect(calls).toContainEqual({ method: 'POST', path: '/api/runs', body: { site: 'all' } }),
+      expect(calls).toContainEqual({
+        method: 'POST',
+        path: '/api/runs',
+        body: { site: 'all', resume: false },
+      }),
     )
   })
 
@@ -91,6 +95,30 @@ describe('RunControls', () => {
     await user.click(await screen.findByRole('menuitem', { name: 'All shops' }))
 
     await waitFor(() => expect(warned).toHaveBeenCalledWith('Run #3 of prm is already running'))
+  })
+
+  it('offers to resume an interrupted run instead of starting over', async () => {
+    const cancelled = run({ id: 4, status: 'cancelled', pages_done: 12, pages_total: 100 })
+    const interrupted = site({ latest: cancelled, resumable: true })
+    const calls = mockApi({
+      'GET /api/sites': [interrupted],
+      'POST /api/runs': { run_ids: [4], skipped: [] },
+    })
+    const client = newClient()
+    client.setQueryData(['sites'], [interrupted])
+    const { user } = renderWithClient(<RunControls />, client)
+
+    await user.click(screen.getByRole('button', { name: 'Refresh' }))
+    expect(await screen.findByRole('menuitem', { name: /^PRM\s*starts over/ })).toBeInTheDocument()
+    await user.click(screen.getByRole('menuitem', { name: /^Resume PRM\s*12\/100 pages/ }))
+
+    await waitFor(() =>
+      expect(calls).toContainEqual({
+        method: 'POST',
+        path: '/api/runs',
+        body: { site: 'prm', resume: true },
+      }),
+    )
   })
 
   it('announces a run that finished', async () => {

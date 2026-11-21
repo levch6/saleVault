@@ -183,8 +183,8 @@ export function useUpdateMySizes() {
 export function useStartRun() {
   const client = useQueryClient()
   return useMutation({
-    mutationFn: async (site: string) => {
-      const { data, error, response } = await api.POST('/api/runs', { body: { site } })
+    mutationFn: async ({ site, resume = false }: { site: string; resume?: boolean }) => {
+      const { data, error, response } = await api.POST('/api/runs', { body: { site, resume } })
       if (!data) throw apiError(error, response)
       return data
     },

@@ -16,7 +16,7 @@ from typing import Any
 
 from salevault.db.runs import RunAlreadyRunningError, RunRepository, RunRow, same_process
 
-CommandFactory = Callable[[str, bool | None], list[str]]
+CommandFactory = Callable[[str, bool | None, bool], list[str]]
 KEEP_LOGS = 20
 """UI runs write one log each; older ones are deleted."""
 
@@ -29,10 +29,12 @@ class RunNotRunningError(Exception):
     pass
 
 
-def scrape_command(site: str, headed: bool | None) -> list[str]:
+def scrape_command(site: str, headed: bool | None, resume: bool = False) -> list[str]:
     command = [sys.executable, "-m", "salevault", "scrape", site, "--trigger", "ui", "--top", "0"]
     if headed is not None:
         command.append("--headed" if headed else "--headless")
+    if resume:
+        command.append("--resume")
     return command
 
 
@@ -53,8 +55,8 @@ class RunLauncher:
         self._on_finish = on_finish
         self._tasks: set[asyncio.Task[Any]] = set()
 
-    async def start(self, site: str, *, headed: bool | None = None) -> int:
-        """Spawn a scrape and return its run id once the process has registered the run."""
+    async def start(self, site: str, *, headed: bool | None = None, resume: bool = False) -> int:
+        """Spawn a scrape (or resume one) and return its run id once the process registered it."""
         active = await asyncio.to_thread(self._repo.active_run, site)
         if active is not None:
             raise RunAlreadyRunningError(f"Run #{active.id} of {site} is already running")
@@ -67,7 +69,7 @@ class RunLauncher:
         env = os.environ | {"SALEVAULT_DATA_DIR": str(self._data_dir), "COLUMNS": "120"}
         with log_path.open("ab") as log_file:
             process = await asyncio.create_subprocess_exec(
-                *self._command(site, headed),
+                *self._command(site, headed, resume),
                 stdin=asyncio.subprocess.DEVNULL,
                 stdout=log_file,
                 stderr=asyncio.subprocess.STDOUT,

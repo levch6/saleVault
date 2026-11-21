@@ -37,6 +37,7 @@ def list_sites(session: SessionDep, repo: RunsDep) -> list[SiteOut]:
         db_site = db_sites.get(code)
         latest = repo.latest(code)
         completed = repo.latest(code, statuses=FINISHED)
+        resumable = repo.resumable(code) is not None
         out.append(
             SiteOut(
                 code=code,
@@ -45,6 +46,7 @@ def list_sites(session: SessionDep, repo: RunsDep) -> list[SiteOut]:
                 active_products=counts.get(code, 0),
                 last_completed=RunOut.from_row(completed) if completed else None,
                 latest=RunOut.from_row(latest) if latest else None,
+                resumable=resumable,
             )
         )
     return out
@@ -71,12 +73,21 @@ def get_run(run_id: Annotated[int, Path(le=MAX_ID)], repo: RunsDep) -> RunOut:
 
 
 @router.post("/runs", status_code=202, responses=error_responses(409, 422, 500))
-async def start_run(body: StartRunIn, launcher: LauncherDep) -> StartRunOut:
-    """Start a scrape in the background; returns once the run is registered."""
+async def start_run(body: StartRunIn, launcher: LauncherDep, repo: RunsDep) -> StartRunOut:
+    """Start a scrape in the background (or resume one); returns once the run is registered."""
     codes = sorted(SITES) if body.site == "all" else [body.site]
     unknown = [c for c in codes if c not in SITES]
     if unknown:
         raise ApiError(422, "unknown_site", f"Unknown site {unknown[0]!r}")
+    if body.resume:
+        if len(codes) != 1:
+            raise ApiError(422, "resume_needs_one_site", "Resume one site at a time")
+        repo.reap_dead()
+        if repo.resumable(codes[0]) is None:
+            raise ApiError(409, "nothing_to_resume", f"No failed or cancelled run of {codes[0]}")
+        return StartRunOut(
+            run_ids=[await launcher.start(codes[0], headed=body.headed, resume=True)]
+        )
     run_ids: list[int] = []
     skipped: list[str] = []
     for code in codes:

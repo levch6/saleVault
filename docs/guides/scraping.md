@@ -45,7 +45,7 @@ Each run ends with one of these statuses:
 ## Cancel and resume
 
 - Cancel: Ctrl+C in the terminal, or the cross next to the progress in the app header.
-- Resume: `just scrape <shop> --resume` continues the shop's last failed or cancelled run. It fetches only the pages that are missing and keeps the same run id.
+- Resume: `just scrape <shop> --resume`, or **Resume <shop>** in the app's Refresh menu, continues the shop's last failed or cancelled run. It fetches only the pages that are missing and keeps the same run id. While such a run exists, the plain entry for that shop in the menu says "starts over".
 
 Starting a new run (without `--resume`) discards the fetched pages of older unfinished runs of that shop.
 

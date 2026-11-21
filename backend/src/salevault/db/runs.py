@@ -246,6 +246,23 @@ class RunRepository:
             row = session.execute(query).first()
             return _row(row[0], row[1]) if row else None
 
+    def resumable(self, site_code: str) -> RunRow | None:
+        """The site's latest run, if it failed or was cancelled and kept its plan and pages."""
+        with session_scope(self._reader) as session:
+            row = session.execute(
+                select(ScrapeRun, Site.code)
+                .join(Site, Site.id == ScrapeRun.site_id)
+                .where(Site.code == site_code)
+                .order_by(ScrapeRun.started_at.desc(), ScrapeRun.id.desc())
+                .limit(1)
+            ).first()
+            if row is None:
+                return None
+            run, code = row
+            if run.status not in ("failed", "cancelled") or not run.segments_json:
+                return None
+            return _row(run, code)
+
     def active_run(self, site_code: str) -> RunRow | None:
         """The site's live running run, after reaping dead ones; None if the site is idle."""
         with session_scope(self._factory) as session:
