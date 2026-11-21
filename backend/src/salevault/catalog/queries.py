@@ -3,6 +3,7 @@
 import json
 from collections import OrderedDict, defaultdict
 from collections.abc import Iterable, Sequence
+from dataclasses import replace
 from threading import Lock
 from typing import Any
 
@@ -87,12 +88,18 @@ def resolve_filter(session: Session, query: CatalogQuery) -> CatalogFilter:
     site_ids: Sequence[int] = ()
     if query.site:
         site_ids = session.scalars(select(Site.id).where(Site.code.in_(query.site))).all()
-    return CatalogFilter(
+    flt = CatalogFilter(
         query=query,
         site_ids=tuple(site_ids),
         my_sizes=tuple(read_my_sizes(session)),
         runs=load_run_context(session),
     )
+    flag_ids: dict[str, tuple[int, ...]] = {
+        flag: tuple(session.scalars(select(Product.id).where(flt.flag_condition(flag))))
+        for flag in set(query.flags)
+        if flag in ("new", "price_drop")
+    }
+    return replace(flt, flag_ids=flag_ids) if flag_ids else flt
 
 
 def _card_select() -> Any:
