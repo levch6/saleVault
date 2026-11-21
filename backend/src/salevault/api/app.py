@@ -94,7 +94,7 @@ def _install_request_guards(app: FastAPI, config: Settings) -> None:
     """The API has no authentication and listens on localhost: make sure only the user's own
     browser tab and tools can use it, not other web pages."""
     hosts = list(config.allowed_hosts)
-    if config.host not in ("0.0.0.0", "::", "", *hosts):
+    if config.host not in ("0.0.0.0", "::", "", *hosts):  # noqa: S104 (a comparison)
         hosts.append(config.host)
 
     @app.middleware("http")

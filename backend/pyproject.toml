@@ -43,15 +43,17 @@ select = [
     "PT",       # pytest style
     "ASYNC",    # async pitfalls
     "RUF",      # ruff-specific
+    "S",        # security (bandit)
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101"]
+"tests/**" = ["S101", "S311"]
+"scripts/**" = ["S101", "S311"]
 
 [tool.mypy]
 python_version = "3.15"
 strict = true
-files = ["src", "tests", "scripts"]
+files = ["src", "tests", "scripts", "../.claude/hooks"]
 plugins = ["pydantic.mypy"]
 
 [tool.pydantic-mypy]

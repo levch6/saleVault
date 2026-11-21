@@ -277,7 +277,7 @@ class ScrapeRunner:
         self._sink = sink or NullSink()
         self._raw_sink = raw_sink
         self._sleep = sleep
-        self._rng = rng or random.Random()
+        self._rng = rng or random.Random()  # noqa: S311 (pacing jitter, not security)
         self._requests = 0
         self._retries = 0
         self._budget = self._opts.max_requests

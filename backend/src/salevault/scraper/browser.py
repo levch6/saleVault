@@ -110,17 +110,22 @@ class BrowserSession:
         return HttpResponse(status=int(result["status"]), text=str(result["text"]))
 
     async def _new_page(self) -> Page:
-        assert self._context is not None
-        pages = self._context.pages
-        page = pages[0] if pages else await self._context.new_page()
+        context = self._require_context()
+        pages = context.pages
+        page = pages[0] if pages else await context.new_page()
         page.set_default_timeout(self._navigation_timeout_ms)
         return page
 
+    def _require_context(self) -> BrowserContext:
+        if self._context is None:
+            raise RuntimeError("The browser session is not open")
+        return self._context
+
     async def _recover(self) -> None:
-        assert self._context is not None
+        context = self._require_context()
         if self._page is not None and not self._page.is_closed():
             await self._page.close()
-        self._page = await self._context.new_page()
+        self._page = await context.new_page()
         if self._last_url is not None:
             await self.open(self._last_url)
 

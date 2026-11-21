@@ -63,6 +63,9 @@ shortcut:
     set -euo pipefail
     # A .bat cannot carry an icon, so the .bat and the .ico live in %LOCALAPPDATA%\saleVault
     # and the desktop gets a .lnk pointing at them.
+    case "$PWD" in
+        *[%\"]*) echo "The repository path contains % or a quote, which a .bat file cannot hold: $PWD" >&2; exit 1 ;;
+    esac
     local_app=$(cmd.exe /c 'echo %LOCALAPPDATA%' 2>/dev/null | tr -d '\r')
     dir="$(wslpath "$local_app")/saleVault"
     mkdir -p "$dir"

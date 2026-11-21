@@ -7,7 +7,6 @@
       "Bash(just test)",
       "Bash(just fmt)",
       "Bash(just build)",
-      "Bash(just gen-api)",
       "Bash(just runs *)",
       "Bash(uv run pytest *)",
       "Bash(uv run ruff *)",
@@ -20,6 +19,7 @@
       "Bash(git log *)"
     ],
     "ask": [
+      "Bash(just gen-api)",
       "Bash(just scrape *)",
       "Bash(uv run salevault scrape *)",
       "Bash(uv run pytest -m live *)",

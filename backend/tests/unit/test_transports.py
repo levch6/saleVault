@@ -10,6 +10,7 @@ from salevault.scraper.errors import BlockedError, ScrapeError
 from salevault.scraper.sites.answear_platform import TransportMode
 
 opened: list[str] = []
+UNUSED_PROFILE = Path("never-created")  # the fakes never touch it
 
 
 class FakeHttp:
@@ -56,7 +57,7 @@ def fakes(monkeypatch: pytest.MonkeyPatch) -> None:
 
 async def use(mode: TransportMode) -> str:
     async with transports.open_adapter(
-        "prm", transport=mode, headless=False, profile_dir=Path("/tmp/unused")
+        "prm", transport=mode, headless=False, profile_dir=UNUSED_PROFILE
     ) as adapter:
         return type(adapter._transport).__name__
 
@@ -95,7 +96,7 @@ async def test_auto_stops_on_a_rate_limit_or_an_error(status: int, error: type[E
 
 async def test_the_start_page_is_opened_once() -> None:
     async with transports.open_adapter(
-        "prm", transport="auto", headless=False, profile_dir=Path("/tmp/unused")
+        "prm", transport="auto", headless=False, profile_dir=UNUSED_PROFILE
     ) as adapter:
         await adapter.warm_up()  # the runner warms up again
 

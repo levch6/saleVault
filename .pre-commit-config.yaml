@@ -18,6 +18,11 @@ repos:
 
   - repo: local
     hooks:
+      - id: local-only-paths
+        name: nothing from .notes/ or data/
+        entry: .notes/ and data/ are local only and must never be committed
+        language: fail
+        files: ^(\.notes|data)/
       - id: ruff-check
         name: ruff check
         entry: uv run --project backend --no-sync ruff check --fix --exit-non-zero-on-fix
