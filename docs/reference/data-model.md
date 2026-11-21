@@ -32,14 +32,16 @@ settings                               (standalone key/value)
 | `id`, `site_id` | |
 | `status` | `running`, `success`, `partial`, `failed`, `cancelled` |
 | `trigger` | `cli` or `ui` |
-| `pid` | process id, for locking and cancel |
+| `pid`, `pid_start` | process id and its start time (clock ticks since boot), for locking and cancel; together they survive pid reuse |
 | `started_at`, `updated_at`, `finished_at` | `updated_at` is the heartbeat, bumped on every staged page |
 | `expected_total` | item count reported by the shop at the start |
 | `pages_total`, `pages_done`, `items_seen` | progress |
 | `segments_json` | the segment plan with per-segment counts |
-| `category_tree_json` | the shop's category tree fetched by this run |
+| `category_tree_json` | the shop's category tree fetched by this run; cleared after the merge |
 | `stats_json` | run statistics (see the [API](http-api.md#shops-and-runs)) |
 | `error` | short reason shown in the UI |
+
+A partial unique index on `site_id` where `status = 'running'` keeps at most one running run per shop.
 
 ### `run_pages` (checkpoints)
 
@@ -109,7 +111,7 @@ One transaction after all pages are fetched:
 2. Upsert `products`: new items get `first_seen_*` and their first `price_history` row; a changed price sets `prev_price_minor` and `last_price_change_run_id` and adds a `price_history` row; every seen item gets `last_seen_*`, `is_active = 1` and `missed_runs = 0`.
 3. Rebuild `product_sizes` and `product_categories` for the seen items.
 4. Only on `success`: items of the shop not seen get `missed_runs + 1`, and those reaching 2 become inactive.
-5. Write the run statistics and clear `run_items` and `run_pages` of the run.
+5. Record the run's status and statistics, and clear `run_items`, `run_pages` and the stored category tree of the run, in the same transaction.
 
 ## Derived values
 

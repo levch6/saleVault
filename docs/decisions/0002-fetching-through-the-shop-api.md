@@ -42,3 +42,4 @@ PRM and Answear.ua run on the same e-commerce platform. Their websites load the 
 
 - **2026-11-21:** confirmed that Playwright's headless shell gets 403 on the start page while a headed window works, so both shop configs run the browser headed. Playwright's `context.request` was not pursued; page-context `fetch` works and is the documented approach.
 - **2026-11-21:** the HTTP transport was added and made the default (`auto`) after it read the full PRM catalog (about 17,500 items) with the same pace and rules.
+- **2026-11-21, review:** the rules are now enforced per run, not per request: the first refusal pauses every worker once, the next one stops the run. `auto` switches to the browser only on a 403 for the start page; a 429 or a network error stops the run. The response that breaks the contract is archived, and a page with more than 20% malformed items fails the run.

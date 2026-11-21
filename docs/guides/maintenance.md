@@ -43,7 +43,7 @@ git pull
 just setup
 ```
 
-Database migrations run automatically when the app or a scrape starts; `just db-upgrade` applies them by hand.
+Database migrations run automatically when the app or a scrape starts; `just db-upgrade` applies them by hand. Before migrating an existing database, a backup is written to `data/backups/`.
 
 ## Troubleshooting the app
 

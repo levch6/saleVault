@@ -17,7 +17,7 @@ Everything runs on your own computer. Nothing is hosted, there is no account, an
 
 ## How it treats the shops
 
-saleVault reads only the public sale catalog, through the same JSON API that the shop's website uses, at about one request per second. It follows `robots.txt`, never logs in or touches account pages, and stops the run if a shop refuses requests. It uses no proxies, no CAPTCHA solving and no stealth plugins. Details: [How a scrape works](docs/concepts/scraping.md#rules-the-scraper-follows).
+saleVault reads only the public sale catalog, through the same JSON API that the shop's website uses, at about one request per second. By default it uses a lightweight HTTP client that presents the network profile of a regular Chrome browser, and a real Chromium window when a shop does not accept that client. It follows `robots.txt`, never logs in or touches account pages, and if a shop refuses requests it pauses once and then stops the run. It uses no proxies, no CAPTCHA solving and no stealth plugins. Details: [How a scrape works](docs/concepts/scraping.md#rules-the-scraper-follows).
 
 ## Quick start
 

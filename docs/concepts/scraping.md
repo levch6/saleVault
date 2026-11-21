@@ -8,9 +8,9 @@ saleVault is a personal, non-commercial tool. It is built to read a shop the way
 
 - **Public data only.** It reads the public sale catalog: no login, no account, no checkout, no personal data.
 - **The shop's own API.** It uses the same JSON catalog API that the shop's website calls in your browser, instead of parsing pages.
-- **Polite pace.** Each worker waits a random 0.8 to 1.6 s after every request. PRM uses one worker, Answear.ua two. A run is also capped at 3,000 requests.
+- **Polite pace.** Each worker waits a random 0.8 to 1.6 s after every request. PRM uses one worker, Answear.ua two. A run may make at most 25% more requests than the pages it planned (and never more than 10,000).
 - **robots.txt.** The paths it uses (the start page, the sale page, the catalog API) are not disallowed by the shops' `robots.txt`. It never touches disallowed paths such as cart, checkout or account pages.
-- **Stops when refused.** On HTTP 403 or 429 it pauses once for 60 s and retries; if the shop refuses again, the run stops and reports it.
+- **Stops when refused.** The first HTTP 403 or 429 of a run pauses every worker for 60 s; any further refusal in the same run stops it and reports it.
 - **No evasion tooling.** No proxies or IP rotation, no CAPTCHA solving, no stealth browser plugins.
 - **Nothing is redistributed.** Data stays in a local database on your machine. The repository contains no scraped data.
 
@@ -20,7 +20,7 @@ A transport is how requests reach the shop. Both apply the rules above in the sa
 
 - **HTTP** (`http`): curl_cffi, a lightweight HTTP client that uses its built-in Chrome profile, so the shop sees a client with the network fingerprint of a regular Chrome browser. No browser window.
 - **Browser** (`browser`): a real Chromium started by Playwright. It opens the shop's start page like a visitor, then calls the catalog API with `fetch` from that page, exactly as the shop's own frontend does. The shops do not serve Playwright's headless mode, so the browser runs as a normal visible window (through WSLg on Windows).
-- **Auto** (`auto`, the default): try the HTTP client; if the shop does not accept it on the start page, use the browser.
+- **Auto** (`auto`, the default): try the HTTP client; if the shop answers its start page with 403, before any catalog request, use the browser. That is the only case that switches clients: a 429 asks for less traffic and stops the run, and so does a network error.
 
 Background: [ADR-0002](../decisions/0002-fetching-through-the-shop-api.md).
 
@@ -47,11 +47,11 @@ running --+-- every segment complete ---------> merge ---------------------> suc
           +-- Ctrl+C or Cancel -----------------> keep staged pages --------> cancelled
 ```
 
-1. **Start.** The run takes a per-shop lock (at most one active run per shop). A run whose process is gone, or that has not reported progress for 15 minutes, is marked failed first. The browser opens only after the lock is taken.
+1. **Start.** The run takes a per-shop lock (at most one active run per shop, enforced by a unique index). A run whose process is gone, or that has not reported progress for 15 minutes, is marked failed first; the app also marks such runs whenever it lists them. The process is identified by its pid and start time, so a reused pid never counts as the scraper. The browser opens only after the lock is taken.
 2. **Plan.** The segment plan is stored with the run, so a resumed run continues the same plan.
-3. **Fetch.** Every page is staged in the database and recorded as a checkpoint; progress is updated as it goes. Each response is validated: a malformed page fails the run with a contract error, while a single malformed item is skipped and counted.
+3. **Fetch.** Every page is staged in the database and recorded as a checkpoint; progress (and, while planning, a heartbeat) is updated as it goes. Each response is validated: a malformed page fails the run with a contract error and the response is archived. A single malformed item is skipped and counted, but more than 20% of a page means the shop changed its schema, and the run fails instead of fetching the rest for nothing.
 4. **Check.** A run is complete when every segment reached 98% of its count and the whole run 99% of the shop's total.
-5. **Merge.** One transaction merges the staged items into the catalog, writes price history and computes the statistics. Items not seen are only counted against them on a `success` run, and leave the sale after two successful runs in a row without them; a single miss changes nothing.
+5. **Merge.** One transaction merges the staged items into the catalog, writes price history, computes the statistics and records the run's status, so the catalog never shows a merged run that is still `running`. Items not seen are only counted against them on a `success` run, and leave the sale after two successful runs in a row without them; a single miss changes nothing.
 6. **Clean up.** Staging is cleared, statistics are refreshed (`ANALYZE`), and the database is compacted if a lot of space is free.
 
 Transient problems (timeouts, network errors, 5xx) are retried up to 4 times with backoff of 2, 4, 8 and 16 s. `--resume` continues a failed or cancelled run from its checkpoints. If the merge itself fails, it is rolled back and the staged pages stay, so a resume simply merges again. Background: [ADR-0004](../decisions/0004-price-history-and-staged-runs.md).

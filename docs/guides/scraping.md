@@ -14,9 +14,9 @@ just scrape all            # every known shop, one after another
 
 From the app: press **Refresh** in the header and pick a shop or **All shops**. The header shows progress (pages, items) for each running shop, and a notification sums up the result when a run ends. The catalog reloads by itself.
 
-Both ways run the same code. A run started from the app is a separate process; its output goes to `data/logs/run-<site>-<time>.log`.
+Both ways run the same code. A run started from the app is a separate process; its output goes to `data/logs/run-<site>-<time>.log`. **All shops** in the app starts the shops at the same time (when one of them is already running, the others still start), while `just scrape all` runs them one after another. Concurrent runs take turns writing to the database: one waits while the other merges.
 
-Only one run per shop can be active. A run whose process has died, or that has not reported progress for 15 minutes, is detected and marked failed when the next run starts.
+Only one run per shop can be active. A run whose process has died, or that has not reported progress for 15 minutes, is marked failed as soon as the app lists runs or a new run of that shop starts.
 
 ## Typical durations
 
@@ -56,7 +56,7 @@ The scraper talks to a shop through one of two transports. Both follow the same 
 | Transport | What it is | When it is used |
 |---|---|---|
 | `http` | a lightweight HTTP client (curl_cffi with its Chrome profile); no window | first, in `auto` mode |
-| `browser` | a real Chromium driven by Playwright, calling the API from the shop's page; shown as a window | in `auto` mode, when the shop does not accept the HTTP client |
+| `browser` | a real Chromium driven by Playwright, calling the API from the shop's page; shown as a window | in `auto` mode, when the shop answers the HTTP client's start page with 403 |
 
 `auto` is the default. Choose one explicitly with `--transport http` or `--transport browser`. The browser runs as a visible window because the shops do not serve Playwright's headless mode; `--headed` and `--headless` override the per-shop setting.
 
@@ -78,5 +78,6 @@ All options are listed in the [command line reference](../reference/cli.md#salev
 | "A run of ... is already running" | Another run of that shop is active. A dead run is detected automatically (its process is gone, or no progress for 15 minutes). |
 | The run was interrupted (Ctrl+C, Cancel, crash, reboot) | `just scrape <shop> --resume` |
 | The browser window does not appear | The browser transport needs a display; on Windows 11 this is WSLg. The HTTP transport needs no window. |
-| "Contract error" or many skipped items | The shop's API changed. The raw responses of the run are kept in `data/raw/<shop>/`; the adapter needs an update. |
+| "Contract error", or "N of M items do not match the expected schema" | The shop's API changed. The response that broke the run is kept in `data/raw/<shop>/`; the adapter needs an update. |
+| Saving a favorite or sizes fails with "database is busy" | A merge held the database for more than two minutes. Try again in a moment. |
 | Coverage below 99% (`partial`) | Usually the catalog changed during the run. Run again; nothing was removed from the catalog. |

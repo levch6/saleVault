@@ -35,3 +35,4 @@ The app shows New and Cheaper badges, a favorites watchlist and price history ch
 ## Updates
 
 - **2026-11-21:** a full run misses about 0.5% of items because the API orders equal items differently between requests. Deactivation therefore has a grace period: an item becomes inactive only after two successful runs in a row without it.
+- **2026-11-21, review:** the run's status and statistics are written in the merge transaction, and writers start with `BEGIN IMMEDIATE`, so concurrent runs and API writes wait for each other instead of failing.

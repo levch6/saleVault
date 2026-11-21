@@ -36,14 +36,16 @@ justfile                  every project command
 
 ```bash
 just check        # everything CI runs: lint, format check, types, spelling, CI security, tests
-just lint         # ruff, mypy --strict, Biome, tsc, typos, zizmor, ASCII Markdown
+just lint         # ruff (with security rules), mypy --strict, Biome, tsc, typos, zizmor, ASCII Markdown
 just test         # pytest + Vitest (offline)
 just fmt          # auto-format and safe fixes
 ```
 
-Git hooks (installed by `just setup`, or `just hooks`) run quick checks on the staged files and check the commit message. If a hook rewrites files, stage them and commit again. Do not bypass hooks with `--no-verify`; fix what they report.
+Git hooks (installed by `just setup`, or `just hooks`) run quick checks on the staged files, refuse anything under `.notes/` or `data/`, and check the commit message. If a hook rewrites files, stage them and commit again. Do not bypass hooks with `--no-verify`; fix what they report.
 
 CI (`.github/workflows/check.yml`) runs `just check` and the UI build on every push to `main` and on pull requests. It never touches the network beyond installing packages.
+
+CodeQL (GitHub's default setup) analyzes the Python, TypeScript and workflow code on every push. The repository allows only GitHub's own actions plus `astral-sh/setup-uv`, `pnpm/action-setup` and `extractions/setup-just`, pinned to commit SHAs: a new third-party action needs an entry in the repository's Actions settings.
 
 `main` is protected by a repository ruleset: it cannot be deleted or force-pushed, history stays linear, and changes from anyone but the maintainer arrive as pull requests that are squash-merged once the `lint, test and build` check passes on an up-to-date branch.
 

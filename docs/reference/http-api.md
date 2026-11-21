@@ -5,7 +5,8 @@ The API serves the UI; it is also handy for scripts on the same machine. It list
 - Base path `/api`, JSON. The OpenAPI schema is at `/api/openapi.json`, interactive docs at `/api/docs`. Frontend types are generated from it (`just gen-api`).
 - Operation ids are the Python function names (`list_products`, `get_facets`, ...).
 - Prices are **whole hryvnias** (`int`), with the currency given separately. The database keeps kopecks.
-- Errors: `{"detail": "...", "code": "..."}`. Codes: `not_found` (404), `unknown_site` (422), `run_already_running` (409), `run_not_running` (409), `launch_failed` (500). Validation errors are FastAPI's standard 422.
+- Errors: `{"detail": "...", "code": "..."}`. Codes: `not_found` (404), `forbidden` (403, a write sent from another site), `unknown_site` (422), `run_already_running` (409), `run_not_running` (409), `launch_failed` (500), `database_busy` (503, a merge held the database too long), `internal` (500, see the server log). Validation errors are FastAPI's standard 422.
+- Only the host names in `SALEVAULT_ALLOWED_HOSTS` are served (400 otherwise). Ids, prices, pages and list lengths are bounded, so out-of-range values are 422, never a server error.
 - Unknown query parameters are rejected (422), so a typo never silently drops a filter.
 
 ## Catalog
@@ -90,7 +91,7 @@ Order: categories by depth then name; brands and sizes by count, then name or la
 |---|---|
 | `gallery` | images (thumb + full) |
 | `category_paths` | one root-to-leaf path per most specific category (unisex items usually have one path per gender tree) |
-| `size_details` | sizes with the shop's `availability` value |
+| `size_details` | sizes with the shop's `availability` value and their `variation_id` (unique per item; labels may repeat) |
 | `price_history` | `[{observed_at, price, price_regular, price_min30, discount_pct}]`, oldest first, one point per change |
 | `last_seen_at` | when a run last saw the item |
 
@@ -111,12 +112,12 @@ Order: categories by depth then name; brands and sizes by count, then name or la
 | Method | Path | Description |
 |---|---|---|
 | `GET` | `/api/sites` | every known shop, even before its first run: `{code, name, origin, active_products, last_completed, latest}`. `last_completed` is the latest `success` or `partial` run (the data on screen), `latest` the latest run of any status |
-| `GET` | `/api/runs?site=&limit=20` | runs, newest first; `limit` 1 to 200 |
+| `GET` | `/api/runs?site=&limit=20` | runs, newest first; `limit` 1 to 200. Runs whose process has died are marked `failed` before listing (also on `/api/sites` and `/api/runs/{id}`) |
 | `GET` | `/api/runs/{id}` | `{id, site, status, trigger, started_at, finished_at, expected_total, pages_total, pages_done, items_seen, stats, error}` |
-| `POST` | `/api/runs` | body `{"site": "prm" or "all", "headed": null}`; 202 `{"run_ids": [...]}` once each scraper process has registered its run; 409 `run_already_running`; 422 `unknown_site`; 500 `launch_failed` with the tail of the process output |
+| `POST` | `/api/runs` | body `{"site": "prm" or "all", "headed": null}`; 202 `{"run_ids": [...], "skipped": [...]}` once each scraper process has registered its run. With `all`, shops that cannot start are listed in `skipped` and the others still start; with one shop, 409 `run_already_running` or 500 `launch_failed` with the tail of the process output; 422 `unknown_site` |
 | `POST` | `/api/runs/{id}/cancel` | 202 with the run; the scraper gets SIGTERM and ends as `cancelled` (resumable from the CLI); 409 `run_not_running`; 404 |
 | `GET` | `/api/health` | `{"status": "ok", "version": "...", "db": "ok"}` |
 
-`stats` of a finished run: `{seen, new, price_drops, price_ups, returned, missing, removed, expected, coverage, requests, retries, duration_s}`.
+`stats` of a finished run: `{seen, new, price_drops, price_ups, returned, missing, removed, expected, coverage, requests, retries, invalid_items, duration_s}`.
 
-A run started through the API is a separate process (`python -m salevault scrape <shop> --trigger ui`) with its output in `data/logs/`. The API waits until the process has registered its run (at most 60 s) or reports its output if it exits first. When the process ends, the facet cache is warmed with the new data.
+A run started through the API is a separate process (`python -m salevault scrape <shop> --trigger ui`) with its output in `data/logs/`. The API waits until the process has registered its run (at most 60 s; after that the process is terminated) or reports its output if it exits first. When the process ends, the facet cache is warmed with the new data. Cancel sends SIGTERM only if the stored pid still belongs to the process that registered the run (same start time).

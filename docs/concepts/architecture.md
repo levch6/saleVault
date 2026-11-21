@@ -38,6 +38,8 @@ saleVault is a single-user application that runs on your own machine. There is n
 - **Scrapes** are always separate processes. The terminal starts one directly (`just scrape`); the app starts one through `RunLauncher` (`python -m salevault scrape <shop> --trigger ui`) in its own session. A crash of the scraper or the browser cannot take the web server down, and a run survives a restart of the server.
 - **Progress** travels through the database: the scraper updates its row in `scrape_runs`, the UI polls `GET /api/sites` about every 1.5 s while a run is active. There are no queues or workers.
 - **Cancel** sends SIGTERM to the scraper process, which drops the request in flight, keeps the fetched pages and records the run as `cancelled`.
+- **Writes from several processes** (two scrapers, the API) take turns: write transactions start with `BEGIN IMMEDIATE` and wait up to 120 s for the write lock, longer than the slowest merge. Reads never wait (WAL).
+- **The local API** answers only to `localhost` and `127.0.0.1` and refuses writes sent from other sites, because it has no authentication.
 
 ## Data flow
 

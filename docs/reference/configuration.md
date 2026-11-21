@@ -12,8 +12,9 @@ Set them in the environment or in a `.env` file at the repository root (not comm
 | `SALEVAULT_FRONTEND_DIST` | `<repo>/frontend/dist` | the built UI that `salevault serve` serves |
 | `SALEVAULT_HOST` | `127.0.0.1` | address the server binds to |
 | `SALEVAULT_PORT` | `8000` | port the server listens on |
+| `SALEVAULT_ALLOWED_HOSTS` | `["localhost", "127.0.0.1"]` | host names the API answers to (JSON list); requests for any other `Host` are refused |
 
-The server binds to localhost on purpose: the API has no authentication and is meant for your own browser only.
+The server binds to localhost on purpose: the API has no authentication and is meant for your own browser only. It also refuses requests for unknown host names (so a web page cannot point its own domain at your machine) and writes sent from other sites. `salevault serve` warns when it is asked to listen on anything but loopback.
 
 ## User settings
 
@@ -30,9 +31,11 @@ Fixed in code (`RunOptions` in `scraper/runner.py`):
 | Setting | Value |
 |---|---|
 | Pause after each request, per worker | random 0.8 to 1.6 s |
-| Request budget per run | 3,000 |
+| Request budget per run | the planned pages plus 25% and 50 requests, at most 10,000 |
 | Retries for timeouts, network errors and 5xx | 4, backoff 2, 4, 8, 16 s plus jitter |
-| On 403 or 429 | one 60 s pause, then the run stops if refused again |
+| On 403 or 429 | the first one pauses every worker for 60 s; the next one stops the run |
+| Malformed items | more than 20% of a page stops the run (the item schema changed) |
+| Waiting for the database | a write waits up to 120 s for another writer (a merge takes up to about 40 s) |
 | Segment size limit | 96% of what one query can reach (9,600 items) |
 | Completeness for `success` | 98% per segment and 99% overall |
 
