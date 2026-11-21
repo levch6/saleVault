@@ -19,7 +19,7 @@ from tenacity import (
     wait_random,
 )
 
-from salevault.domain.models import Gender, ProductRecord
+from salevault.domain.models import CategoryNode, Gender, ProductRecord
 from salevault.scraper.base import PageResult, Segment, SiteAdapter
 from salevault.scraper.errors import BlockedError, BudgetExceededError, TransientError
 from salevault.scraper.segmentation import PlannedSegment, plan_segments
@@ -104,11 +104,16 @@ class RunSink(Protocol):
 
     def on_plan(self, expected_total: int, plan: Sequence[SegmentPlan]) -> None: ...
 
+    def on_category_tree(self, nodes: Sequence[CategoryNode]) -> None: ...
+
     def on_page(self, segment: Segment, page: int, gender: Gender, result: PageResult) -> None: ...
 
 
 class NullSink:
     def on_plan(self, expected_total: int, plan: Sequence[SegmentPlan]) -> None:
+        pass
+
+    def on_category_tree(self, nodes: Sequence[CategoryNode]) -> None:
         pass
 
     def on_page(self, segment: Segment, page: int, gender: Gender, result: PageResult) -> None:
@@ -300,6 +305,8 @@ class ScrapeRunner:
 
     async def _plan(self, collector: _Collector) -> tuple[int, list[SegmentPlan]]:
         root = await self._request(Segment(), 1)
+        if root.category_tree:
+            self._sink.on_category_tree(root.category_tree)
         roots = self._adapter.root_segments(root) or [Segment()]
         planned = await plan_segments(
             self._planning_fetch,

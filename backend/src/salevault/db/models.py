@@ -67,6 +67,8 @@ class ScrapeRun(Base):
     items_seen: Mapped[int] = mapped_column(default=0)
     segments_json: Mapped[str | None] = mapped_column(Text)
     """Segment plan: [{sex, price, count, pages, full_pages, truncated}]."""
+    category_tree_json: Mapped[str | None] = mapped_column(Text)
+    """The shop's category tree as fetched by this run (CategoryNode list)."""
     stats_json: Mapped[str | None] = mapped_column(Text)
     error: Mapped[str | None] = mapped_column(Text)
 
@@ -126,10 +128,17 @@ class Product(Base):
     __tablename__ = "products"
     __table_args__ = (
         UniqueConstraint("site_id", "external_id"),
+        # Every sort and the cheap facets get an index led by `is_active`, so a page or a
+        # GROUP BY walks the index instead of looking up 200k rows (see the bench script).
         Index(None, "is_active", "discount_pct", "savings_minor"),
+        Index(None, "is_active", "discount_min30_pct", "discount_pct"),
+        Index(None, "is_active", "savings_minor"),
+        Index(None, "is_active", "price_minor"),
+        Index(None, "is_active", "first_seen_at"),
+        Index(None, "is_active", "brand_id"),
+        Index(None, "is_active", "gender_mask"),
         Index(None, "site_id", "is_active", "discount_pct"),
         Index(None, "brand_id"),
-        Index(None, "price_minor"),
         Index(None, "first_seen_run_id"),
         Index(None, "last_price_change_run_id"),
     )
@@ -180,7 +189,8 @@ class ProductCategory(Base):
 
 class ProductSize(Base):
     __tablename__ = "product_sizes"
-    __table_args__ = (Index(None, "label", "in_stock", "product_id"),)
+    # Covers both the size filter (EXISTS by product) and the size facet join.
+    __table_args__ = (Index(None, "product_id", "in_stock", "label"),)
 
     product_id: Mapped[int] = mapped_column(
         ForeignKey("products.id", ondelete="CASCADE"), primary_key=True

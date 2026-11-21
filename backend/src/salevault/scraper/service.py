@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 from sqlalchemy.orm import Session, sessionmaker
 
-from salevault.db.engine import session_scope
+from salevault.db.engine import analyze, session_scope
 from salevault.db.finalize import RunStats, finalize_run
 from salevault.db.runs import DbRunSink, RunRepository
 from salevault.scraper.base import SiteAdapter, SiteInfo
@@ -88,6 +88,11 @@ async def execute_run(
     except Exception as exc:
         repo.finish(run_id, "failed", error=f"{type(exc).__name__}: {exc}")
         raise
+
+    try:
+        analyze(factory)
+    except Exception as exc:  # statistics are an optimization, never a reason to fail a run
+        log.warning("ANALYZE after run #%d failed: %s", run_id, exc)
 
     duration = (result.finished_at - result.started_at).total_seconds()
     repo.finish(

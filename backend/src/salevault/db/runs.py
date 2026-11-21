@@ -7,14 +7,14 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, select
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session, sessionmaker
 
 from salevault.db.engine import session_scope
 from salevault.db.models import RunItem, RunPage, ScrapeRun, Site
 from salevault.db.types import utcnow
-from salevault.domain.models import Gender, ProductRecord
+from salevault.domain.models import CategoryNode, Gender, ProductRecord
 from salevault.scraper.base import PageResult, Segment, SiteInfo
 from salevault.scraper.runner import ResumeState, SegmentPlan
 
@@ -136,6 +136,43 @@ class RunRepository:
                 query = query.where(Site.code == site)
             return [_row(run, code) for run, code in session.execute(query)]
 
+    def active_run(self, site_code: str) -> RunRow | None:
+        """The site's live running run, after reaping dead ones; None if the site is idle."""
+        with session_scope(self._factory) as session:
+            site = session.scalars(select(Site).where(Site.code == site_code)).first()
+            if site is None:
+                return None
+            try:
+                self._check_not_running(session, site)
+            except RunAlreadyRunningError:
+                run = session.scalars(
+                    select(ScrapeRun).where(
+                        ScrapeRun.site_id == site.id, ScrapeRun.status == "running"
+                    )
+                ).one()
+                return _row(run, site.code)
+            return None
+
+    def run_id_for_pid(self, pid: int) -> int | None:
+        with session_scope(self._factory) as session:
+            return session.scalar(
+                select(ScrapeRun.id)
+                .where(ScrapeRun.pid == pid, ScrapeRun.status == "running")
+                .order_by(ScrapeRun.id.desc())
+                .limit(1)
+            )
+
+    def pid_of(self, run_id: int) -> int | None:
+        with session_scope(self._factory) as session:
+            return session.scalar(select(ScrapeRun.pid).where(ScrapeRun.id == run_id))
+
+    def find(self, run_id: int) -> RunRow | None:
+        with session_scope(self._factory) as session:
+            run = session.get(ScrapeRun, run_id)
+            if run is None:
+                return None
+            return _row(run, session.get_one(Site, run.site_id).code)
+
     def get(self, run_id: int) -> RunRow:
         with session_scope(self._factory) as session:
             run = session.get_one(ScrapeRun, run_id)
@@ -165,6 +202,18 @@ class DbRunSink:
     def __init__(self, factory: sessionmaker[Session], run_id: int) -> None:
         self._factory = factory
         self._run_id = run_id
+        # Progress counters live in memory (a COUNT per page grows with the staging table);
+        # a resumed run starts from what is already staged.
+        with session_scope(factory) as session:
+            self._pages = {
+                (key, page)
+                for key, page in session.execute(
+                    select(RunPage.segment_key, RunPage.page).where(RunPage.run_id == run_id)
+                )
+            }
+            self._items = set(
+                session.scalars(select(RunItem.external_id).where(RunItem.run_id == run_id))
+            )
 
     def on_plan(self, expected_total: int, plan: Sequence[SegmentPlan]) -> None:
         with session_scope(self._factory) as session:
@@ -173,6 +222,11 @@ class DbRunSink:
             run.segments_json = json.dumps([p.to_json() for p in plan])
             run.pages_total = sum(p.pages for p in plan)
             run.updated_at = utcnow()
+
+    def on_category_tree(self, nodes: Sequence[CategoryNode]) -> None:
+        with session_scope(self._factory) as session:
+            run = session.get_one(ScrapeRun, self._run_id)
+            run.category_tree_json = json.dumps([n.model_dump() for n in nodes])
 
     def on_page(self, segment: Segment, page: int, gender: Gender, result: PageResult) -> None:
         with session_scope(self._factory) as session:
@@ -208,16 +262,12 @@ class DbRunSink:
                     fetched_at=utcnow(),
                 )
             )
+            self._pages.add((segment.key, page))
+            self._items.update(i.external_id for i in result.items)
             run = session.get_one(ScrapeRun, self._run_id)
-            run.pages_done = _count(session, RunPage, self._run_id)
-            run.items_seen = _count(session, RunItem, self._run_id)
+            run.pages_done = len(self._pages)
+            run.items_seen = len(self._items)
             run.updated_at = utcnow()
-
-
-def _count(session: Session, model: type[RunPage] | type[RunItem], run_id: int) -> int:
-    return (
-        session.scalar(select(func.count()).select_from(model).where(model.run_id == run_id)) or 0
-    )
 
 
 def _ensure_site(session: Session, info: SiteInfo) -> Site:

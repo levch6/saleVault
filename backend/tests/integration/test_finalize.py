@@ -16,7 +16,7 @@ from salevault.db.models import (
     RunPage,
 )
 from salevault.db.runs import DbRunSink, RunRepository
-from salevault.domain.models import Gender, ProductRecord
+from salevault.domain.models import CategoryNode, CategoryRef, Gender, ProductRecord
 from salevault.scraper.base import Facets, PageResult, Segment
 from tests.fakes import FAKE_SITE, FakeItem, make_record
 
@@ -160,3 +160,69 @@ def test_unisex_items_merge_gender_bits(factory: sessionmaker[Session]) -> None:
     rows = products(factory)
     assert rows["u"].gender_mask == Gender.MEN | Gender.WOMEN
     assert rows["w"].gender_mask == Gender.WOMEN
+
+
+def _record_with_categories(item_id: str, path: list[str]) -> ProductRecord:
+    base = item(item_id, 100)
+    return base.model_copy(
+        update={"categories": tuple(CategoryRef(external_id=c, name=f"C{c}") for c in path)}
+    )
+
+
+def _category_parents(factory: sessionmaker[Session]) -> dict[str, str | None]:
+    with session_scope(factory) as session:
+        rows = session.execute(select(Category.id, Category.external_id, Category.parent_id)).all()
+    by_id = {cid: ext for cid, ext, _ in rows}
+    return {ext: by_id.get(parent) if parent else None for _, ext, parent in rows}
+
+
+def _product_categories(factory: sessionmaker[Session], external_id: str) -> set[str]:
+    with session_scope(factory) as session:
+        return set(
+            session.scalars(
+                select(Category.external_id)
+                .join(ProductCategory, ProductCategory.category_id == Category.id)
+                .join(Product, Product.id == ProductCategory.product_id)
+                .where(Product.external_id == external_id)
+            )
+        )
+
+
+def test_category_tree_drives_parents_and_ancestor_links(factory: sessionmaker[Session]) -> None:
+    tree = [
+        CategoryNode(external_id="6", name="Women", parent_external_id=None, depth=0),
+        CategoryNode(external_id="7", name="Clothing", parent_external_id="6", depth=1),
+        CategoryNode(external_id="40", name="Jackets", parent_external_id="7", depth=2),
+        CategoryNode(external_id="48", name="Short", parent_external_id="40", depth=3),
+        CategoryNode(external_id="43", name="Long", parent_external_id="40", depth=3),
+        CategoryNode(external_id="99", name="Unused", parent_external_id="6", depth=1),
+    ]
+    repo = RunRepository(factory)
+    run_id = repo.start(FAKE_SITE, trigger="cli")
+    sink = DbRunSink(factory, run_id)
+    sink.on_category_tree(tree)
+    # A real-world list: a full path, then a second path that lost its root.
+    record = _record_with_categories("x", ["6", "7", "40", "48", "43"])
+    sink.on_page(
+        Segment(), 1, Gender.WOMEN, PageResult(count=1, items=(record,), facets=Facets(), raw="{}")
+    )
+    with session_scope(factory) as session:
+        finalize_run(session, run_id, deactivate=True)
+
+    parents = _category_parents(factory)
+    assert parents["43"] == "40", "the tree wins over the glued item list"
+    assert parents["99"] == "6", "unused tree nodes are stored too"
+    assert _product_categories(factory, "x") == {"6", "7", "40", "48", "43"}
+
+
+def test_without_a_tree_glued_paths_are_split_at_roots(factory: sessionmaker[Session]) -> None:
+    men = _record_with_categories("m", ["1", "11", "111"])
+    unisex = _record_with_categories("u", ["1", "11", "111", "2", "21", "211"])
+    women = _record_with_categories("w", ["2", "21"])
+
+    run_once(factory, [(Gender.MEN, [men, unisex]), (Gender.WOMEN, [women])])
+
+    parents = _category_parents(factory)
+    assert parents["2"] is None, "a root starts a new path"
+    assert parents["21"] == "2"
+    assert parents["211"] == "21"
