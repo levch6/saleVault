@@ -4,14 +4,48 @@ A local tool that collects sale items from fashion shops and shows them **sorted
 
 Supported shops: PRM.com (UA), with Answear.ua planned.
 
-> **Status:** early development.
+> **Status:** early development. The app shell runs; the scraper is not implemented yet.
+
+## Requirements
+
+- Linux or WSL2 (developed on Ubuntu under Windows 11)
+- [uv](https://docs.astral.sh/uv/), Node.js with [pnpm](https://pnpm.io/), [just](https://just.systems/)
+
+Python 3.15, the Playwright Chromium build and all packages are installed by `just setup`.
 
 ## Quick start
 
-To be added once the project skeleton is in place.
+```bash
+just setup    # Python deps (uv), Playwright Chromium, Node deps (pnpm)
+just start    # build the UI and serve it together with the API on http://localhost:8000
+```
+
+On WSL2 the app opens in a regular Windows browser at `localhost`.
+
+## Development
 
 ```bash
-just setup        # install dependencies (Python via uv, Node via pnpm, Playwright Chromium)
-just scrape prm   # collect the current PRM sale (about 5 min)
-just start        # then open http://localhost:8000
+just dev      # API on :8000 with auto-reload + Vite on http://localhost:5173
+just check    # lint, format check, type check and all tests
+just fmt      # auto-format and apply safe lint fixes
+just gen-api  # regenerate frontend API types after changing the API
+```
+
+API docs (OpenAPI) are served at `/api/docs`.
+
+## Stack
+
+| Part | Tech |
+|---|---|
+| Backend | Python 3.15, uv, FastAPI, Pydantic, SQLAlchemy + Alembic, SQLite, Playwright, Typer |
+| Frontend | Vite, React (with React Compiler), TypeScript, Tailwind CSS, shadcn/ui, TanStack Query and Router |
+| Quality | ruff, mypy (strict), pytest; Biome, tsc, Vitest |
+
+## Layout
+
+```
+backend/    Python package `salevault`: scraper, storage, HTTP API, CLI
+frontend/   single-page app
+justfile    all project commands
+data/       runtime data (database, browser profile, logs); not tracked
 ```
