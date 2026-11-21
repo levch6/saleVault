@@ -61,10 +61,13 @@ def test_security_and_cache_headers(client: TestClient) -> None:
 
 def test_the_ui_gets_a_strict_script_policy(client: TestClient) -> None:
     policy = client.get("/").headers["content-security-policy"]
+    directives = {
+        name: sources.split() for name, sources in (d.split(" ", 1) for d in policy.split("; "))
+    }
 
-    assert "script-src 'self';" in policy
-    assert "https://img2.ans-media.com" in policy
-    assert "frame-ancestors 'none'" in policy
+    assert directives["script-src"] == ["'self'"]
+    assert directives["img-src"] == ["'self'", "data:", "https://img2.ans-media.com"]
+    assert directives["frame-ancestors"] == ["'none'"]
     assert "content-security-policy" not in client.get("/api/docs").headers, "Swagger uses a CDN"
 
 
