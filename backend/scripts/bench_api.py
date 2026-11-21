@@ -41,7 +41,8 @@ def main() -> None:
     args = parser.parse_args()
 
     app = create_app(Settings(data_dir=args.data_dir, frontend_dist=args.data_dir / "no-dist"))
-    with TestClient(app) as client:
+    # The API answers only to localhost (`SALEVAULT_ALLOWED_HOSTS`), not to "testserver".
+    with TestClient(app, base_url="http://localhost") as client:
         total = client.get("/api/products", params={"page_size": 1}).json()["total"]
         some = client.get("/api/products", params={"page_size": 1}).json()["items"][0]
         brand = some["brand"]["id"]
