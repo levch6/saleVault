@@ -26,7 +26,9 @@ export const Route = createFileRoute('/')({
 function CatalogPage() {
   const search = Route.useSearch()
   const navigate = useNavigate({ from: '/' })
-  const facets = useQuery(facetsQuery(toFacetQuery(search)))
+  // Cheap facets first (list-speed), categories and sizes in a second, slower request.
+  const facets = useQuery(facetsQuery(toFacetQuery(search), false))
+  const detail = useQuery(facetsQuery(toFacetQuery(search)))
   const sites = useQuery(sitesQuery)
 
   const update = useCallback(
@@ -81,11 +83,22 @@ function CatalogPage() {
     <div className="flex gap-6">
       <aside className="hidden w-64 shrink-0 lg:block">
         <div className="sticky top-20 max-h-[calc(100svh-6rem)] overflow-y-auto pr-2 pb-8">
-          <FilterSidebar search={search} facets={facets.data} onChange={update} />
+          <FilterSidebar
+            search={search}
+            facets={facets.data}
+            detail={detail.data}
+            onChange={update}
+          />
         </div>
       </aside>
       <section className="min-w-0 flex-1 space-y-4">
-        <CatalogToolbar search={search} facets={facets.data} onChange={update} onReset={reset} />
+        <CatalogToolbar
+          search={search}
+          facets={facets.data}
+          detail={detail.data}
+          onChange={update}
+          onReset={reset}
+        />
         <ProductGrid
           query={toApiQuery(compact({ ...search, product: undefined }))}
           onOpen={open}

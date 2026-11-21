@@ -94,11 +94,13 @@ function MySizesToggle({
 export function CatalogToolbar({
   search,
   facets,
+  detail,
   onChange,
   onReset,
 }: {
   search: CatalogSearch
   facets: Facets | undefined
+  detail: Facets | undefined
   onChange: OnChange
   onReset: () => void
 }) {
@@ -145,7 +147,7 @@ export function CatalogToolbar({
             <SheetTitle>Filters</SheetTitle>
           </SheetHeader>
           <div className="px-4 pb-6">
-            <FilterSidebar search={search} facets={facets} onChange={onChange} />
+            <FilterSidebar search={search} facets={facets} detail={detail} onChange={onChange} />
           </div>
         </SheetContent>
       </Sheet>

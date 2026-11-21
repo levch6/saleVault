@@ -225,6 +225,19 @@ def test_facets_ignore_their_own_filter(seeded: TestClient) -> None:
     assert facets["discount"] == {"min": 50, "max": 80}
 
 
+def test_light_facets_skip_categories_and_sizes(seeded: TestClient) -> None:
+    light = seeded.get("/api/facets", params={"heavy": False}).json()
+    full = seeded.get("/api/facets").json()
+
+    assert light["categories"] is None
+    assert light["sizes"] is None
+    assert {k: v for k, v in light.items() if k not in ("categories", "sizes")} == {
+        k: v for k, v in full.items() if k not in ("categories", "sizes")
+    }
+    assert full["categories"]
+    assert full["sizes"]
+
+
 def test_facets_reflect_new_data(seeded: TestClient) -> None:
     before = seeded.get("/api/facets").json()["total"]
     seed_run(

@@ -27,6 +27,7 @@ from salevault.catalog.schemas import (
     CategoryFacet,
     CategoryOut,
     Facets,
+    FacetsQuery,
     FavoriteOut,
     GenderCode,
     HistoryPoint,
@@ -170,7 +171,7 @@ def data_version(session: Session) -> tuple[object, ...]:
     return (last_run, fav_count, fav_last, sizes)
 
 
-def facets(session: Session, query: CatalogQuery) -> Facets:
+def facets(session: Session, query: FacetsQuery) -> Facets:
     bind = session.get_bind()
     database = str(bind.engine.url)
     key = (database, query.model_dump_json(), *data_version(session))
@@ -186,7 +187,7 @@ def _pairs(session: Session, stmt: Any) -> dict[int, int]:
     return {key: count for key, count in session.execute(stmt)}  # noqa: C416 (Result has .keys())
 
 
-def _compute_facets(session: Session, query: CatalogQuery) -> Facets:
+def _compute_facets(session: Session, query: FacetsQuery) -> Facets:
     flt = resolve_filter(session, query)
     total = session.scalar(select(func.count()).select_from(Product).where(*flt.conditions())) or 0
 
@@ -234,37 +235,42 @@ def _compute_facets(session: Session, query: CatalogQuery) -> Facets:
         key=lambda b: (-b.count, b.name),
     )
 
-    category_counts = _pairs(
-        session,
-        select(ProductCategory.category_id, func.count())
-        .select_from(Product)
-        .join(ProductCategory, ProductCategory.product_id == Product.id)
-        .where(*flt.conditions(skip="category"))
-        .group_by(ProductCategory.category_id),
-    )
-    categories = [
-        CategoryFacet(id=cid, name=name, parent_id=parent, depth=depth, count=category_counts[cid])
-        for cid, name, parent, depth in session.execute(
-            select(Category.id, Category.name, Category.parent_id, Category.depth)
-            .where(Category.id.in_(category_counts))
-            .order_by(Category.depth, Category.name)
-        )
-    ]
-
-    sizes = [
-        SizeFacet(label=label, count=n)
-        for label, n in session.execute(
-            select(ProductSize.label, func.count(distinct(ProductSize.product_id)).label("n"))
+    categories: list[CategoryFacet] | None = None
+    sizes: list[SizeFacet] | None = None
+    if query.heavy:
+        category_counts = _pairs(
+            session,
+            select(ProductCategory.category_id, func.count())
             .select_from(Product)
-            .join(
-                ProductSize,
-                and_(ProductSize.product_id == Product.id, ProductSize.in_stock.is_(True)),
-            )
-            .where(*flt.conditions(skip="size"))
-            .group_by(ProductSize.label)
-            .order_by(literal_column("n").desc(), ProductSize.label)
+            .join(ProductCategory, ProductCategory.product_id == Product.id)
+            .where(*flt.conditions(skip="category"))
+            .group_by(ProductCategory.category_id),
         )
-    ]
+        categories = [
+            CategoryFacet(
+                id=cid, name=name, parent_id=parent, depth=depth, count=category_counts[cid]
+            )
+            for cid, name, parent, depth in session.execute(
+                select(Category.id, Category.name, Category.parent_id, Category.depth)
+                .where(Category.id.in_(category_counts))
+                .order_by(Category.depth, Category.name)
+            )
+        ]
+
+        sizes = [
+            SizeFacet(label=label, count=n)
+            for label, n in session.execute(
+                select(ProductSize.label, func.count(distinct(ProductSize.product_id)).label("n"))
+                .select_from(Product)
+                .join(
+                    ProductSize,
+                    and_(ProductSize.product_id == Product.id, ProductSize.in_stock.is_(True)),
+                )
+                .where(*flt.conditions(skip="size"))
+                .group_by(ProductSize.label)
+                .order_by(literal_column("n").desc(), ProductSize.label)
+            )
+        ]
 
     price_min, price_max = session.execute(
         select(func.min(Product.price_minor), func.max(Product.price_minor)).where(
