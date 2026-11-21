@@ -2,6 +2,7 @@
   "name": "salevault-frontend",
   "private": true,
   "version": "0.0.0",
+  "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@12.21.0",
   "engines": {
