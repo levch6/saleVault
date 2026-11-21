@@ -8,7 +8,7 @@ Prices are stored as integers in minor units (kopecks) in columns ending in `_mi
 
 | Value | Definition |
 |---|---|
-| Discount | `100 * (1 - price / regular price)` in whole percent, rounded the way the shop rounds its own badges: truncated for PRM and Answear.ua (48.5% is -48%), rounded half up for Footshop (9.99% is -10%). Saks85 shows no percent; its discounts are whole percents, so truncation gives the same value. |
+| Discount | `100 * (1 - price / regular price)` in whole percent, rounded the way the shop rounds its own badges: truncated for PRM, Answear.ua and Modivo (48.5% is -48%), rounded half up for Footshop (9.99% is -10%). Saks85 shows no percent; its discounts are whole percents, so truncation gives the same value. |
 | Honest discount | the same formula against the lowest price of the last 30 days, when the shop reports one that is higher than the current price; otherwise empty. It shows whether a sale price is really lower than the recent normal price. |
 | Savings | regular price minus current price. |
 
@@ -39,7 +39,7 @@ The sidebar filters **New since last run** and **Got cheaper** use the same defi
 
 ## Sizes
 
-Every size of an item is stored with the shop's availability. `IN_STOCK` and `LAST` count as in stock; other values do not. Footshop lists only the sizes that can be bought, so all of its listed sizes count as in stock. Saks85 marks sold-out sizes on its cards; they count as out of stock. The size filter and **Only my sizes** match sizes in stock only. Saved sizes are compared by label (for example `M`, `43`, `W32`) and are highlighted on the cards.
+Every size of an item is stored with the shop's availability. `IN_STOCK` and `LAST` count as in stock; other values do not. Footshop lists only the sizes that can be bought, so all of its listed sizes count as in stock. Saks85 marks sold-out sizes on its cards; they count as out of stock. Modivo lists every size with its stock level: few left is stored as `LAST`, more as `IN_STOCK`, none as `OUT_OF_STOCK`. The size filter and **Only my sizes** match sizes in stock only. Saved sizes are compared by label (for example `M`, `43`, `W32`) and are highlighted on the cards.
 
 ## Favorites
 

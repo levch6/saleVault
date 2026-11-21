@@ -1,0 +1,792 @@
+{
+  "listingDetails": {
+    "currentPage": 1,
+    "totalPages": 246,
+    "totalProducts": 17670,
+    "productsPerPage": 72
+  },
+  "products": [
+    {
+      "sku": "0000306296176",
+      "currency": "UAH",
+      "mainProductImageSlug": "0/0/0/1/0001000100000000000000000000000000000000_01_TEST0001_M.jpg",
+      "designSystem": {
+        "id": "0000306296176",
+        "brand": "Brand 1",
+        "name": "Product 1 \u00b7 Color 1",
+        "url": "/p/brand-1-product-1-0000306296176",
+        "images": [
+          {
+            "src": "https://img.modivo.cloud/productcard(0/0/0/1/0001000100000000000000000000000000000000_01_TEST0001_M.jpg,jpg)/brand-1-product-1-0000306296176.jpg",
+            "alt": "Brand 1 Brand 1 Product 1 MODEL-0001 Color 1 Regular Fit"
+          },
+          {
+            "src": "https://img.modivo.cloud/productcard(0/0/0/1/0001000200000000000000000000000000000000_02_TEST0001_M.jpg,jpg)/brand-1-product-1-0000306296176.jpg",
+            "alt": "Brand 1 Brand 1 Product 1 MODEL-0001 Color 1 Regular Fit"
+          },
+          {
+            "src": "https://img.modivo.cloud/productcard(0/0/0/1/0001000300000000000000000000000000000000_03_TEST0001_M.jpg,jpg)/brand-1-product-1-0000306296176.jpg",
+            "alt": "Brand 1 Brand 1 Product 1 MODEL-0001 Color 1 Regular Fit"
+          }
+        ]
+      }
+    },
+    {
+      "sku": "0000305569547",
+      "currency": "UAH",
+      "mainProductImageSlug": "0/0/0/2/0002000100000000000000000000000000000000_01_TEST0002_M.jpg",
+      "designSystem": {
+        "id": "0000305569547",
+        "brand": "Brand 1",
+        "name": "Product 2 \u00b7 Color 2",
+        "url": "/p/brand-1-product-2-0000305569547",
+        "images": [
+          {
+            "src": "https://img.modivo.cloud/productcard(0/0/0/2/0002000100000000000000000000000000000000_01_TEST0002_M.jpg,jpg)/brand-1-product-2-0000305569547.jpg",
+            "alt": "Brand 1 Brand 1 Product 2 MODEL-0002 Color 2 Regular Fit"
+          },
+          {
+            "src": "https://img.modivo.cloud/productcard(0/0/0/2/0002000200000000000000000000000000000000_02_TEST0002_M.jpg,jpg)/brand-1-product-2-0000305569547.jpg",
+            "alt": "Brand 1 Brand 1 Product 2 MODEL-0002 Color 2 Regular Fit"
+          },
+          {
+            "src": "https://img.modivo.cloud/productcard(0/0/0/2/0002000300000000000000000000000000000000_03_TEST0002_M.jpg,jpg)/brand-1-product-2-0000305569547.jpg",
+            "alt": "Brand 1 Brand 1 Product 2 MODEL-0002 Color 2 Regular Fit"
+          }
+        ]
+      }
+    },
+    {
+      "sku": "5907964590774",
+      "currency": "UAH",
+      "mainProductImageSlug": "0/0/0/3/0003000100000000000000000000000000000000_01_TEST0003_M.jpg",
+      "designSystem": {
+        "id": "5907964590774",
+        "brand": "Brand 2",
+        "name": "Product 3 \u00b7 Color 3",
+        "url": "/p/brand-2-product-3-5907964590774",
+        "images": [
+          {
+            "src": "https://img.modivo.cloud/productcard(0/0/0/3/0003000100000000000000000000000000000000_01_TEST0003_M.jpg,jpg)/brand-2-product-3-5907964590774.jpg",
+            "alt": "Brand 2 Brand 2 Product 3 MODEL-0003 Color 3 Regular Fit"
+          },
+          {
+            "src": "https://img.modivo.cloud/productcard(0/0/0/3/0003000200000000000000000000000000000000_02_TEST0003_M.jpg,jpg)/brand-2-product-3-5907964590774.jpg",
+            "alt": "Brand 2 Brand 2 Product 3 MODEL-0003 Color 3 Regular Fit"
+          },
+          {
+            "src": "https://img.modivo.cloud/productcard(0/0/0/3/0003000300000000000000000000000000000000_03_TEST0003_M.jpg,jpg)/brand-2-product-3-5907964590774.jpg",
+            "alt": "Brand 2 Brand 2 Product 3 MODEL-0003 Color 3 Regular Fit"
+          }
+        ]
+      }
+    },
+    {
+      "sku": "0000306230590",
+      "currency": "UAH",
+      "mainProductImageSlug": "0/0/0/4/0004000100000000000000000000000000000000_01_TEST0004_M.jpg",
+      "designSystem": {
+        "id": "0000306230590",
+        "brand": "Brand 3",
+        "name": "Product 4 \u00b7 Color 4",
+        "url": "/p/brand-3-product-4-0000306230590",
+        "images": [
+          {
+            "src": "https://img.modivo.cloud/productcard(0/0/0/4/0004000100000000000000000000000000000000_01_TEST0004_M.jpg,jpg)/brand-3-product-4-0000306230590.jpg",
+            "alt": "Brand 3 Brand 3 Product 4 MODEL-0004 Color 4 Regular Fit"
+          },
+          {
+            "src": "https://img.modivo.cloud/productcard(0/0/0/4/0004000200000000000000000000000000000000_02_TEST0004_M.jpg,jpg)/brand-3-product-4-0000306230590.jpg",
+            "alt": "Brand 3 Brand 3 Product 4 MODEL-0004 Color 4 Regular Fit"
+          },
+          {
+            "src": "https://img.modivo.cloud/productcard(0/0/0/4/0004000300000000000000000000000000000000_03_TEST0004_M.jpg,jpg)/brand-3-product-4-0000306230590.jpg",
+            "alt": "Brand 3 Brand 3 Product 4 MODEL-0004 Color 4 Regular Fit"
+          }
+        ]
+      }
+    },
+    {
+      "sku": "5907964649298",
+      "currency": "UAH",
+      "mainProductImageSlug": "0/0/0/5/0005000100000000000000000000000000000000_01_TEST0005_M.jpg",
+      "designSystem": {
+        "id": "5907964649298",
+        "brand": "Brand 4",
+        "name": "Product 5 \u00b7 Color 5 \u00b7 Regular Fit",
+        "url": "/p/brand-4-product-5-5907964649298",
+        "images": [
+          {
+            "src": "https://img.modivo.cloud/productcard(0/0/0/5/0005000100000000000000000000000000000000_01_TEST0005_M.jpg,jpg)/brand-4-product-5-5907964649298.jpg",
+            "alt": "Brand 4 Brand 4 Product 5 MODEL-0005 Color 5 Regular Fit"
+          },
+          {
+            "src": "https://img.modivo.cloud/productcard(0/0/0/5/0005000200000000000000000000000000000000_02_TEST0005_M.jpg,jpg)/brand-4-product-5-5907964649298.jpg",
+            "alt": "Brand 4 Brand 4 Product 5 MODEL-0005 Color 5 Regular Fit"
+          },
+          {
+            "src": "https://img.modivo.cloud/productcard(0/0/0/5/0005000300000000000000000000000000000000_03_TEST0005_M.jpg,jpg)/brand-4-product-5-5907964649298.jpg",
+            "alt": "Brand 4 Brand 4 Product 5 MODEL-0005 Color 5 Regular Fit"
+          }
+        ]
+      }
+    },
+    {
+      "sku": "0000306286993",
+      "currency": "UAH",
+      "mainProductImageSlug": "0/0/0/6/0006000100000000000000000000000000000000_01_TEST0006_M.jpg",
+      "designSystem": {
+        "id": "0000306286993",
+        "brand": "Brand 5",
+        "name": "Product 6 \u00b7 Color 6",
+        "url": "/p/brand-5-product-6-0000306286993",
+        "images": [
+          {
+            "src": "https://img.modivo.cloud/productcard(0/0/0/6/0006000100000000000000000000000000000000_01_TEST0006_M.jpg,jpg)/brand-5-product-6-0000306286993.jpg",
+            "alt": "Brand 5 Brand 5 Product 6 MODEL-0006 Color 6 Regular Fit"
+          },
+          {
+            "src": "https://img.modivo.cloud/productcard(0/0/0/6/0006000200000000000000000000000000000000_02_TEST0006_M.jpg,jpg)/brand-5-product-6-0000306286993.jpg",
+            "alt": "Brand 5 Brand 5 Product 6 MODEL-0006 Color 6 Regular Fit"
+          },
+          {
+            "src": "https://img.modivo.cloud/productcard(0/0/0/6/0006000300000000000000000000000000000000_03_TEST0006_M.jpg,jpg)/brand-5-product-6-0000306286993.jpg",
+            "alt": "Brand 5 Brand 5 Product 6 MODEL-0006 Color 6 Regular Fit"
+          }
+        ]
+      }
+    }
+  ],
+  "productsAnalytics": [
+    {
+      "sku": "0000306296176",
+      "color": "Color 1",
+      "price": {
+        "regular": {
+          "amount": 11999
+        },
+        "promotional": {
+          "amount": 8499
+        },
+        "omnibus": {
+          "amount": null
+        },
+        "discount": "29%"
+      },
+      "variants": {
+        "S": {
+          "id": "0000306296176-S",
+          "size": "S",
+          "sort_order": 0,
+          "availability": "enough",
+          "values": {
+            "clothes_size": {
+              "value": {
+                "label": "S"
+              }
+            },
+            "rozmiar_karta_produktu": {
+              "value": {
+                "label": "S"
+              }
+            }
+          }
+        },
+        "M": {
+          "id": "0000306296176-M",
+          "size": "M",
+          "sort_order": 1,
+          "availability": "unavailable",
+          "values": {
+            "clothes_size": {
+              "value": {
+                "label": "M"
+              }
+            },
+            "rozmiar_karta_produktu": {
+              "value": {
+                "label": "M"
+              }
+            }
+          }
+        },
+        "L": {
+          "id": "0000306296176-L",
+          "size": "L",
+          "sort_order": 2,
+          "availability": "enough",
+          "values": {
+            "clothes_size": {
+              "value": {
+                "label": "L"
+              }
+            },
+            "rozmiar_karta_produktu": {
+              "value": {
+                "label": "L"
+              }
+            }
+          }
+        },
+        "XL": {
+          "id": "0000306296176-XL",
+          "size": "XL",
+          "sort_order": 3,
+          "availability": "plenty",
+          "values": {
+            "clothes_size": {
+              "value": {
+                "label": "XL"
+              }
+            },
+            "rozmiar_karta_produktu": {
+              "value": {
+                "label": "XL"
+              }
+            }
+          }
+        },
+        "XXL": {
+          "id": "0000306296176-XXL",
+          "size": "XXL",
+          "sort_order": 4,
+          "availability": "unavailable",
+          "values": {
+            "clothes_size": {
+              "value": {
+                "label": "XXL"
+              }
+            },
+            "rozmiar_karta_produktu": {
+              "value": {
+                "label": "XXL"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "sku": "0000305569547",
+      "color": "Color 2",
+      "price": {
+        "regular": {
+          "amount": 14399
+        },
+        "promotional": {
+          "amount": 11699
+        },
+        "omnibus": {
+          "amount": null
+        },
+        "discount": "18%"
+      },
+      "variants": {
+        "S": {
+          "id": "0000305569547-S",
+          "size": "S",
+          "sort_order": 0,
+          "availability": "unavailable",
+          "values": {
+            "clothes_size": {
+              "value": {
+                "label": "S"
+              }
+            },
+            "rozmiar_karta_produktu": {
+              "value": {
+                "label": "S"
+              }
+            }
+          }
+        },
+        "M": {
+          "id": "0000305569547-M",
+          "size": "M",
+          "sort_order": 1,
+          "availability": "unavailable",
+          "values": {
+            "clothes_size": {
+              "value": {
+                "label": "M"
+              }
+            },
+            "rozmiar_karta_produktu": {
+              "value": {
+                "label": "M"
+              }
+            }
+          }
+        },
+        "L": {
+          "id": "0000305569547-L",
+          "size": "L",
+          "sort_order": 2,
+          "availability": "unavailable",
+          "values": {
+            "clothes_size": {
+              "value": {
+                "label": "L"
+              }
+            },
+            "rozmiar_karta_produktu": {
+              "value": {
+                "label": "L"
+              }
+            }
+          }
+        },
+        "XL": {
+          "id": "0000305569547-XL",
+          "size": "XL",
+          "sort_order": 3,
+          "availability": "unavailable",
+          "values": {
+            "clothes_size": {
+              "value": {
+                "label": "XL"
+              }
+            },
+            "rozmiar_karta_produktu": {
+              "value": {
+                "label": "XL"
+              }
+            }
+          }
+        },
+        "XXL": {
+          "id": "0000305569547-XXL",
+          "size": "XXL",
+          "sort_order": 4,
+          "availability": "low",
+          "values": {
+            "clothes_size": {
+              "value": {
+                "label": "XXL"
+              }
+            },
+            "rozmiar_karta_produktu": {
+              "value": {
+                "label": "XXL"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "sku": "5907964590774",
+      "color": "Color 3",
+      "price": {
+        "regular": {
+          "amount": 1699
+        },
+        "promotional": {
+          "amount": 1599
+        },
+        "omnibus": {
+          "amount": null
+        },
+        "discount": "5%"
+      },
+      "variants": {
+        "NOSIZE": {
+          "id": "5907964590774-NOSIZE",
+          "size": "NOSIZE",
+          "sort_order": 0,
+          "availability": "plenty",
+          "values": {
+            "clothes_size": {
+              "value": {
+                "label": "One Size"
+              }
+            },
+            "rozmiar_karta_produktu": {
+              "value": {
+                "label": "One Size"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "sku": "0000306230590",
+      "color": "Color 4",
+      "price": {
+        "regular": {
+          "amount": 10399
+        },
+        "promotional": {
+          "amount": 7899
+        },
+        "omnibus": {
+          "amount": null
+        },
+        "discount": "24%"
+      },
+      "variants": {
+        "40": {
+          "id": "0000306230590-40",
+          "size": "40",
+          "sort_order": 0,
+          "availability": "enough",
+          "values": {
+            "rozmiar_karta_produktu": {
+              "value": {
+                "label": "40"
+              }
+            },
+            "footwear_size": {
+              "value": {
+                "label": "40"
+              }
+            }
+          }
+        },
+        "41": {
+          "id": "0000306230590-41",
+          "size": "41",
+          "sort_order": 1,
+          "availability": "low",
+          "values": {
+            "rozmiar_karta_produktu": {
+              "value": {
+                "label": "41"
+              }
+            },
+            "footwear_size": {
+              "value": {
+                "label": "41"
+              }
+            }
+          }
+        },
+        "42": {
+          "id": "0000306230590-42",
+          "size": "42",
+          "sort_order": 2,
+          "availability": "low",
+          "values": {
+            "rozmiar_karta_produktu": {
+              "value": {
+                "label": "42"
+              }
+            },
+            "footwear_size": {
+              "value": {
+                "label": "42"
+              }
+            }
+          }
+        },
+        "43": {
+          "id": "0000306230590-43",
+          "size": "43",
+          "sort_order": 3,
+          "availability": "unavailable",
+          "values": {
+            "rozmiar_karta_produktu": {
+              "value": {
+                "label": "43"
+              }
+            },
+            "footwear_size": {
+              "value": {
+                "label": "43"
+              }
+            }
+          }
+        },
+        "44": {
+          "id": "0000306230590-44",
+          "size": "44",
+          "sort_order": 4,
+          "availability": "enough",
+          "values": {
+            "rozmiar_karta_produktu": {
+              "value": {
+                "label": "44"
+              }
+            },
+            "footwear_size": {
+              "value": {
+                "label": "44"
+              }
+            }
+          }
+        },
+        "45": {
+          "id": "0000306230590-45",
+          "size": "45",
+          "sort_order": 5,
+          "availability": "enough",
+          "values": {
+            "rozmiar_karta_produktu": {
+              "value": {
+                "label": "45"
+              }
+            },
+            "footwear_size": {
+              "value": {
+                "label": "45"
+              }
+            }
+          }
+        },
+        "46": {
+          "id": "0000306230590-46",
+          "size": "46",
+          "sort_order": 6,
+          "availability": "low",
+          "values": {
+            "rozmiar_karta_produktu": {
+              "value": {
+                "label": "46"
+              }
+            },
+            "footwear_size": {
+              "value": {
+                "label": "46"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "sku": "5907964649298",
+      "color": "Color 5",
+      "price": {
+        "regular": {
+          "amount": 5499
+        },
+        "promotional": {
+          "amount": 3899
+        },
+        "omnibus": {
+          "amount": null
+        },
+        "discount": "29%"
+      },
+      "variants": {
+        "41": {
+          "id": "5907964649298-41",
+          "size": "41",
+          "sort_order": 0,
+          "availability": "low",
+          "values": {
+            "rozmiar_karta_produktu": {
+              "value": {
+                "label": "41"
+              }
+            },
+            "footwear_size": {
+              "value": {
+                "label": "41"
+              }
+            }
+          }
+        },
+        "42": {
+          "id": "5907964649298-42",
+          "size": "42",
+          "sort_order": 1,
+          "availability": "plenty",
+          "values": {
+            "rozmiar_karta_produktu": {
+              "value": {
+                "label": "42"
+              }
+            },
+            "footwear_size": {
+              "value": {
+                "label": "42"
+              }
+            }
+          }
+        },
+        "43": {
+          "id": "5907964649298-43",
+          "size": "43",
+          "sort_order": 2,
+          "availability": "plenty",
+          "values": {
+            "rozmiar_karta_produktu": {
+              "value": {
+                "label": "43"
+              }
+            },
+            "footwear_size": {
+              "value": {
+                "label": "43"
+              }
+            }
+          }
+        },
+        "44": {
+          "id": "5907964649298-44",
+          "size": "44",
+          "sort_order": 3,
+          "availability": "enough",
+          "values": {
+            "rozmiar_karta_produktu": {
+              "value": {
+                "label": "44"
+              }
+            },
+            "footwear_size": {
+              "value": {
+                "label": "44"
+              }
+            }
+          }
+        },
+        "45": {
+          "id": "5907964649298-45",
+          "size": "45",
+          "sort_order": 4,
+          "availability": "low",
+          "values": {
+            "rozmiar_karta_produktu": {
+              "value": {
+                "label": "45"
+              }
+            },
+            "footwear_size": {
+              "value": {
+                "label": "45"
+              }
+            }
+          }
+        },
+        "46": {
+          "id": "5907964649298-46",
+          "size": "46",
+          "sort_order": 5,
+          "availability": "low",
+          "values": {
+            "rozmiar_karta_produktu": {
+              "value": {
+                "label": "46"
+              }
+            },
+            "footwear_size": {
+              "value": {
+                "label": "46"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "sku": "0000306286993",
+      "color": "Color 6",
+      "price": {
+        "regular": {
+          "amount": 4199
+        },
+        "promotional": {
+          "amount": 3399
+        },
+        "omnibus": {
+          "amount": null
+        },
+        "discount": "19%"
+      },
+      "variants": {
+        "S": {
+          "id": "0000306286993-S",
+          "size": "S",
+          "sort_order": 0,
+          "availability": "plenty",
+          "values": {
+            "clothes_size": {
+              "value": {
+                "label": "S"
+              }
+            },
+            "rozmiar_karta_produktu": {
+              "value": {
+                "label": "S"
+              }
+            }
+          }
+        },
+        "M": {
+          "id": "0000306286993-M",
+          "size": "M",
+          "sort_order": 1,
+          "availability": "plenty",
+          "values": {
+            "clothes_size": {
+              "value": {
+                "label": "M"
+              }
+            },
+            "rozmiar_karta_produktu": {
+              "value": {
+                "label": "M"
+              }
+            }
+          }
+        },
+        "L": {
+          "id": "0000306286993-L",
+          "size": "L",
+          "sort_order": 2,
+          "availability": "plenty",
+          "values": {
+            "clothes_size": {
+              "value": {
+                "label": "L"
+              }
+            },
+            "rozmiar_karta_produktu": {
+              "value": {
+                "label": "L"
+              }
+            }
+          }
+        },
+        "XL": {
+          "id": "0000306286993-XL",
+          "size": "XL",
+          "sort_order": 3,
+          "availability": "plenty",
+          "values": {
+            "clothes_size": {
+              "value": {
+                "label": "XL"
+              }
+            },
+            "rozmiar_karta_produktu": {
+              "value": {
+                "label": "XL"
+              }
+            }
+          }
+        },
+        "XXL": {
+          "id": "0000306286993-XXL",
+          "size": "XXL",
+          "sort_order": 4,
+          "availability": "plenty",
+          "values": {
+            "clothes_size": {
+              "value": {
+                "label": "XXL"
+              }
+            },
+            "rozmiar_karta_produktu": {
+              "value": {
+                "label": "XXL"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

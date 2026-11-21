@@ -23,7 +23,7 @@ settings                               (standalone key/value)
 
 ### `sites`
 
-`id`, `code` (unique: `prm`, `answear_ua`, `footshop_ua`, `saks85`), `name`, `origin`, `currency`, `created_at`.
+`id`, `code` (unique: `prm`, `answear_ua`, `footshop_ua`, `saks85`, `modivo_ua`), `name`, `origin`, `currency`, `created_at`.
 
 ### `scrape_runs`
 

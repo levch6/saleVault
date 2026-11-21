@@ -7,9 +7,9 @@ A run reads every item of one shop's sale section and merges it into the catalog
 saleVault is a personal, non-commercial tool. It is built to read a shop the way one person browsing the sale would, only more patiently.
 
 - **Public data only.** It reads the public sale catalog: no login, no account, no checkout, no personal data.
-- **The shop's own data, the shop's own way.** It uses the same JSON catalog API that the shop's website calls in your browser. When a shop's `robots.txt` disallows that API (Footshop), it reads the catalog pages instead, the same pages a visitor loads, and takes the product list from the data embedded in them. Saks85 has no catalog API and embeds no product data, so its product cards are read from the markup of its catalog pages.
-- **Polite pace.** Each worker waits a random 0.8 to 1.6 s after every request. PRM and Saks85 use one worker, Answear.ua and Footshop two. A run may make at most 25% more requests than the pages it planned (and never more than 10,000).
-- **robots.txt.** The paths it uses (the start page, the sale page, the catalog API or the catalog pages) are not disallowed by the shops' `robots.txt`. It never touches disallowed paths such as the cart, checkout, account pages or, for Footshop, its API. Saks85 is a deliberate edge case, by the owner's decision: its `robots.txt` disallows `/*?page=`, the spelling of its own pagination links, so its pages after the first are read through OpenCart's non-SEO URL of the same listing with `&page=N`. No rule matches that URL, but it reaches the paged listings the `?page=` rule is meant to keep crawlers off ([ADR-0008](../decisions/0008-reading-saks85.md)).
+- **The shop's own data, the shop's own way.** It uses the same JSON catalog API that the shop's website calls in your browser. When a shop's `robots.txt` disallows that API (Footshop, Modivo), it reads the catalog pages instead, the same pages a visitor loads, and takes the product list from the data embedded in them. Modivo embeds that data as a script; it is read as data and never run ([ADR-0007](../decisions/0007-reading-modivo.md)). Saks85 has no catalog API and embeds no product data, so its product cards are read from the markup of its catalog pages.
+- **Polite pace.** Each worker waits a random 0.8 to 1.6 s after every request. PRM and Saks85 use one worker, Answear.ua, Footshop and Modivo two. A run may make at most 25% more requests than the pages it planned (and never more than 10,000).
+- **robots.txt.** The paths it uses (the start page, the sale page, the catalog API or the catalog pages) are not disallowed by the shops' `robots.txt`. It never touches disallowed paths such as the cart, checkout, account pages or, for Footshop and Modivo, their APIs. Modivo's `robots.txt` disallows most filters of its catalog pages and allows exactly one discount filter, the one its sale page uses (`discount:~r-5-99`); that is the only filter the scraper uses. Saks85 is a deliberate edge case, by the owner's decision: its `robots.txt` disallows `/*?page=`, the spelling of its own pagination links, so its pages after the first are read through OpenCart's non-SEO URL of the same listing with `&page=N`. No rule matches that URL, but it reaches the paged listings the `?page=` rule is meant to keep crawlers off ([ADR-0008](../decisions/0008-reading-saks85.md)).
 - **Stops when refused.** The first HTTP 403 or 429 of a run pauses every worker for 60 s; any further refusal in the same run stops it and reports it.
 - **No evasion tooling.** No proxies or IP rotation, no CAPTCHA solving, no stealth browser plugins.
 - **Nothing is redistributed.** Data stays in a local database on your machine. The repository contains no scraped data.
@@ -39,6 +39,8 @@ Footshop's catalog pages hold 24 items each and have no depth limit. Its segment
 
 Saks85's catalog pages hold 12 items each, with no known depth limit. Its segments are every gender (men, women) in every top-level category of the sale (clothing, shoes, accessories, home fragrance), as the shop's menus link to them; there is no price split. Page 1 of a segment is the path its menu links to, later pages are `index.php?route=product/category&path=...&filter_ocfilter=...&page=N`. The first request is the sale page, which gives the total count.
 
+Modivo's catalog pages hold 72 items each and have no depth limit (the last page of the whole sale is served; a page past the end answers 404, which counts as an empty page). Its segments are the sales of the men's, women's and kids' sections of the catalog, `/c/<section>/discount:~r-5-99` with `?p=N` for later pages; there is no price split. The first request is the whole sale, which gives the total count.
+
 ## Run lifecycle
 
 ```
@@ -67,6 +69,8 @@ The Answear platform's API can return the shop's full category tree on the first
 Footshop's listing names only an item's main category (for example men's shoes or wallets), so its categories form a flat list.
 
 Saks85's cards name no category: each item gets the top-level category of the segment it was seen in (clothing, shoes, accessories or home fragrance), named as the shop's page heading names it.
+
+Modivo's listing names no category for an item (only the section the page belongs to), so its items have none.
 
 ## Memory
 

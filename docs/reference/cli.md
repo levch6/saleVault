@@ -35,7 +35,7 @@ The Python CLI. Run it as `cd backend && uv run salevault ...`, or through the `
 salevault scrape SITE [OPTIONS]
 ```
 
-Scrape the sale section of a shop and merge it into the local catalog. `SITE` is a shop code (`prm`, `answear_ua`, `footshop_ua`, `saks85`) or `all`.
+Scrape the sale section of a shop and merge it into the local catalog. `SITE` is a shop code (`prm`, `answear_ua`, `footshop_ua`, `saks85`, `modivo_ua`) or `all`.
 
 | Option | Default | Meaning |
 |---|---|---|

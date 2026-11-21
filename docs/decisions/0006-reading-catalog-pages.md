@@ -38,3 +38,4 @@ The shop has no gender path filter exposed in its pages (applying its gender fil
 
 - **2026-11-21:** after the first full run (one worker, no refusals) the shop uses two workers, like Answear.ua; a run takes about 12 minutes.
 - **2026-11-21:** Saks85 embeds no listing JSON in its pages, so its product cards are read from the markup, and only what was read is archived: [ADR-0008](0008-reading-saks85.md).
+- **2026-11-21:** Modivo embeds its listing as a script (Nuxt's state, written by devalue) rather than JSON; it is read as data with a small reader for that subset of JavaScript and never run: [ADR-0007](0007-reading-modivo.md).

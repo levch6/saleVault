@@ -4,7 +4,7 @@
 
 A personal, local tool that collects the sale sections of fashion shops and shows every item **sorted by discount, biggest first**, which the shops' own websites do not offer.
 
-Supported shops: **PRM** (prm.com/ua), **Answear.ua**, **Footshop** (footshop.ua) and **Saks85** (saks85.com).
+Supported shops: **PRM** (prm.com/ua), **Answear.ua**, **Footshop** (footshop.ua), **Saks85** (saks85.com) and **Modivo** (modivo.ua).
 
 - Catalog sorted by discount, or by the "honest" discount (against the lowest price of the last 30 days, where the shop reports it), savings, price or newest
 - Filters with live counts: shop, gender, category tree, brand, size in stock, price, minimum discount, text search
@@ -46,7 +46,7 @@ A personal project, maintained in spare time. Issues and small pull requests are
 
 ## Disclaimer
 
-saleVault is an independent, unofficial and non-commercial project. It is not affiliated with, authorized, sponsored or endorsed by PRM, Answear, Footshop, Saks85 or any of their affiliates. Shop names and trademarks belong to their respective owners and are used here only to identify the websites the tool works with.
+saleVault is an independent, unofficial and non-commercial project. It is not affiliated with, authorized, sponsored or endorsed by PRM, Answear, Footshop, Saks85, Modivo or any of their affiliates. Shop names and trademarks belong to their respective owners and are used here only to identify the websites the tool works with.
 
 - The tool is meant for personal use: browsing public sale catalogs more conveniently on your own computer. It is not intended for commercial use, for bulk collection or for republishing shop data.
 - The project does not sell, publish or redistribute any shop data. This repository contains no scraped data; test fixtures are anonymized.

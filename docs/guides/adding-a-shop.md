@@ -40,7 +40,7 @@ Add the config to `SITES`, then:
 
 ## A shop on another platform
 
-Write a config class that implements `SiteConfig` and an adapter that implements `SiteAdapter`, both protocols from `scraper/base.py`. Footshop (`scraper/sites/footshop.py`) is an example that reads catalog pages instead of an API.
+Write a config class that implements `SiteConfig` and an adapter that implements `SiteAdapter`, both protocols from `scraper/base.py`. Footshop (`scraper/sites/footshop.py`) is an example that reads catalog pages instead of an API. For a shop built with Nuxt 2, `scraper/sites/nuxt_state.py` reads the state its pages embed (`window.__NUXT__`) as data, without running it; Modivo (`modivo.py`) uses it.
 
 | `SiteConfig` member | Purpose |
 |---|---|

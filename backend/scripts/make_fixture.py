@@ -4,7 +4,8 @@ Usage:
     uv run python scripts/make_fixture.py RAW.json.gz OUT.json [--items N]
 
 Works with every archive format: the Answear platform's API responses, the product listings
-taken from Footshop's catalog pages and the product cards read from Saks85's catalog pages.
+taken from Footshop's catalog pages, the product cards read from Saks85's catalog pages and the
+listings read from the state of Modivo's catalog pages.
 Keeps the structure, ids, prices, sizes and availability.
 Replaces shop text (names, brands, categories, labels, URLs, image names, EANs) with neutral
 English placeholders, so fixtures can live in a public repository.
@@ -306,6 +307,70 @@ def saks85_fixture(page: dict[str, Any], n: int) -> dict[str, Any]:
     }
 
 
+# --- Modivo catalog pages (the listing the adapter read from a page's state) -------------------
+
+MODIVO_IMAGES = "https://img.modivo.cloud"
+
+
+def _modivo_features(pair: dict[str, Any]) -> set[str]:
+    card, details = pair["card"], pair["details"] or {}
+    variants = details.get("variants") or {}
+    found = {f"size_{v.get('availability')}" for v in variants.values()}
+    found.add("single_size" if len(variants) <= 1 else "several_sizes")
+    found.update(f"values_{key}" for v in variants.values() for key in v.get("values") or {})
+    if str(card.get("designSystem", {}).get("name")).count(" \N{MIDDLE DOT} ") > 1:
+        found.add("three_part_name")
+    return found
+
+
+def _modivo_image(idx: int, n: int) -> str:
+    """A path in the CDN's form: four folders from the hash, then the file name."""
+    digest = f"{idx:04x}{n:04x}".ljust(40, "0")
+    return f"{'/'.join(digest[:4])}/{digest}_{n:02d}_TEST{idx:04d}_M.jpg"
+
+
+def anonymize_modivo_pair(
+    pair: dict[str, Any], idx: int, brands: dict[str, str]
+) -> tuple[dict[str, Any], dict[str, Any] | None]:
+    card, details = copy.deepcopy(pair["card"]), copy.deepcopy(pair["details"])
+    design = card["designSystem"]
+    brand = brands.setdefault(str(design.get("brand")), f"Brand {len(brands) + 1}")
+    sku = card["sku"]
+    parts = str(design.get("name")).count(" \N{MIDDLE DOT} ")
+    design["brand"] = brand
+    design["name"] = f"Product {idx} \N{MIDDLE DOT} Color {idx}" + (
+        " \N{MIDDLE DOT} Regular Fit" if parts > 1 else ""
+    )
+    slug = f"{brand.lower().replace(' ', '-')}-product-{idx}-{sku}"
+    design["url"] = f"/p/{slug}"
+    alt = f"{brand} {brand} Product {idx} MODEL-{idx:04d} Color {idx} Regular Fit"
+    design["images"] = [
+        {"src": f"{MODIVO_IMAGES}/productcard({_modivo_image(idx, n)},jpg)/{slug}.jpg", "alt": alt}
+        for n, _ in enumerate((design.get("images") or [])[:3], start=1)  # three are enough
+    ]
+    card["mainProductImageSlug"] = _modivo_image(idx, 1) if design["images"] else None
+    if details is not None:
+        details["color"] = f"Color {idx}"
+        for variant in (details.get("variants") or {}).values():
+            for value in (variant.get("values") or {}).values():
+                if not str(value["value"]["label"]).isascii():
+                    value["value"]["label"] = "One size"
+    return card, details
+
+
+def modivo_fixture(page: dict[str, Any], n: int) -> dict[str, Any]:
+    details = {d.get("sku"): d for d in page["productsAnalytics"]}
+    pairs = [{"card": c, "details": details.get(c.get("sku"))} for c in page["products"]]
+    brands: dict[str, str] = {}
+    picked = pick_diverse(pairs, n, features=_modivo_features)
+    anonymized = [anonymize_modivo_pair(p, i, brands) for i, p in enumerate(picked, start=1)]
+    return {
+        "listingDetails": page["listingDetails"],
+        "products": [card for card, _ in anonymized],
+        "productsAnalytics": [d for _, d in anonymized if d is not None],
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("raw", type=Path)
@@ -315,6 +380,12 @@ def main() -> None:
 
     with gzip.open(args.raw, "rt", encoding="utf-8") as fh:
         page = json.load(fh)
+
+    if "listingDetails" in page and "productsAnalytics" in page:
+        fixture = modivo_fixture(page, args.items)
+        _write(args.out, fixture)
+        print(f"Wrote {len(fixture['products'])} items to {args.out}")
+        return
 
     if "cards" in page and "summary" in page:
         fixture = saks85_fixture(page, args.items)

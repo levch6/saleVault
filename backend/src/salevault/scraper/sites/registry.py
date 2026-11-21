@@ -4,6 +4,7 @@ from salevault.domain.models import Gender
 from salevault.scraper.base import SiteAdapter, SiteConfig, Transport
 from salevault.scraper.sites.answear_platform import AnswearPlatformAdapter, AnswearPlatformConfig
 from salevault.scraper.sites.footshop import FootshopAdapter, FootshopConfig, FootshopSection
+from salevault.scraper.sites.modivo import ModivoAdapter, ModivoConfig, ModivoSection
 from salevault.scraper.sites.saks85 import (
     Saks85Adapter,
     Saks85Category,
@@ -68,8 +69,24 @@ SAKS85 = Saks85Config(
     },
 )
 
+MODIVO_UA = ModivoConfig(
+    code="modivo_ua",
+    display_name="Modivo",
+    origin="https://modivo.ua",
+    root_path="/c/modivo",
+    # robots.txt allows exactly this discount filter (5 to 99%), the one the sale page uses.
+    sale_filter="discount:~r-5-99",
+    # The gender sections of the catalog's menu. Unisex items are in both of the first two.
+    sections={
+        "men": ModivoSection("/c/choloviky", Gender.MEN),
+        "women": ModivoSection("/c/zhinky", Gender.WOMEN),
+        "kids": ModivoSection("/c/dity", Gender.KIDS),
+    },
+    concurrency=2,  # about 900 heavy pages per run (2 to 3 MB each); owner's call
+)
+
 SITES: dict[str, SiteConfig] = {
-    config.code: config for config in (PRM, ANSWEAR_UA, FOOTSHOP_UA, SAKS85)
+    config.code: config for config in (PRM, ANSWEAR_UA, FOOTSHOP_UA, SAKS85, MODIVO_UA)
 }
 
 
@@ -89,6 +106,8 @@ def create_adapter(code: str, transport: Transport) -> SiteAdapter:
         return FootshopAdapter(config, transport)
     if isinstance(config, Saks85Config):
         return Saks85Adapter(config, transport)
+    if isinstance(config, ModivoConfig):
+        return ModivoAdapter(config, transport)
     raise TypeError(f"No adapter for {type(config).__name__}")
 
 
