@@ -83,7 +83,7 @@ function SiteChip({ site }: { site: SiteOut }) {
             )}
           />
           <span className="font-medium">{site.name}</span>
-          <span className="hidden text-muted-foreground sm:inline">
+          <span className="hidden text-muted-foreground 2xl:inline">
             {shown?.finished_at ? formatDateTime(shown.finished_at) : 'never scraped'}
           </span>
         </span>
