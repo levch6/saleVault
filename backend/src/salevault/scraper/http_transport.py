@@ -1,8 +1,8 @@
 """Browserless transport: curl_cffi with its built-in Chrome profile.
 
-An optional transport for this personal project (see ADR-0002 updates). Same
-politeness rules as the browser: same pacing, same stop on repeated 403/429. No proxies, no
-CAPTCHA solving. If the site refuses it, `auto` mode falls back to the real browser.
+See docs/decisions/0002-fetching-through-the-shop-api.md. Same rules as the browser: same pace,
+same stop on repeated 403/429, no proxies, no CAPTCHA solving. If the site does not accept it,
+`auto` mode uses the real browser instead.
 """
 
 import logging

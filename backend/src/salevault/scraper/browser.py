@@ -1,6 +1,7 @@
 """Real-browser transport: Chromium via Playwright, API calls via `fetch` from the page.
 
-See ADR-0002: a stock Chromium without stealth plugins; we behave like the site's own frontend.
+See docs/decisions/0002-fetching-through-the-shop-api.md: a stock Chromium without stealth
+plugins that calls the API from the shop's page, like the shop's own frontend.
 """
 
 import logging

@@ -1,4 +1,4 @@
-"""SQLAlchemy models; see docs/specs/data-model.md. Money is integer minor units (kopecks)."""
+"""SQLAlchemy models; see docs/reference/data-model.md. Money is integer minor units (kopecks)."""
 
 from datetime import datetime
 from typing import Any, ClassVar
