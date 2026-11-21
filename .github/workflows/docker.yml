@@ -1,0 +1,91 @@
+name: docker
+
+# Builds the container image and checks that it starts; nothing is published. Runs when the
+# image's inputs change, and monthly to notice upstream breakage (system packages, Chromium).
+on:
+  push:
+    branches: [main]
+    paths:
+      - Dockerfile
+      - compose.yaml
+      - .dockerignore
+      - .github/workflows/docker.yml
+      - backend/pyproject.toml
+      - backend/uv.lock
+      - frontend/package.json
+      - frontend/pnpm-lock.yaml
+      - frontend/pnpm-workspace.yaml
+  pull_request:
+    paths:
+      - Dockerfile
+      - compose.yaml
+      - .dockerignore
+      - .github/workflows/docker.yml
+      - backend/pyproject.toml
+      - backend/uv.lock
+      - frontend/package.json
+      - frontend/pnpm-lock.yaml
+      - frontend/pnpm-workspace.yaml
+  schedule:
+    - cron: "17 5 3 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Actions are pinned to commit SHAs (a tag can be moved); Dependabot bumps the SHA and the
+# version comment together.
+jobs:
+  image:
+    name: build and start the image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Check the Dockerfile and compose.yaml
+        run: |
+          docker buildx build --check .
+          docker compose config --quiet
+
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          load: true
+          tags: salevault:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Serve the app
+        run: |
+          docker run --detach --name app --publish 127.0.0.1:8000:8000 --shm-size 1g salevault:ci
+          for _ in $(seq 1 60); do
+            curl --fail --silent http://127.0.0.1:8000/api/health && break
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:8000/api/health
+          curl --fail --silent http://127.0.0.1:8000/ | grep --quiet '<div id="root">'
+          docker exec app salevault version
+
+      - name: Open a page in the headed Chromium (no shop is contacted)
+        run: |
+          docker run --rm --shm-size 1g salevault:ci python -c "
+          from playwright.sync_api import sync_playwright
+          with sync_playwright() as p:
+              browser = p.chromium.launch(headless=False)
+              browser.new_page().goto('about:blank')
+              print('Chromium', browser.version)
+              browser.close()
+          "
+
+      - name: Logs
+        if: always()
+        run: docker logs app || true

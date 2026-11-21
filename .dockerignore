@@ -1,0 +1,13 @@
+# Send the build only what the image needs: never data/, .notes/, .git or local settings.
+*
+!backend/pyproject.toml
+!backend/uv.lock
+!backend/src/
+!frontend/
+frontend/node_modules
+frontend/dist
+frontend/coverage
+frontend/.claude
+frontend/*.tsbuildinfo
+**/__pycache__
+**/*.py[cod]

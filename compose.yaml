@@ -1,0 +1,23 @@
+# saleVault with one command: `docker compose up --build`, then open http://localhost:8000.
+# See docs/guides/docker.md.
+name: salevault
+
+services:
+  app:
+    build: .
+    image: salevault:local
+    # The API has no authentication and can start scrapes: publish it on this machine only.
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      # A named volume by default; set SALEVAULT_DATA=./data to share the data/ folder of a
+      # native setup (create it first, so it belongs to you and not to root).
+      - ${SALEVAULT_DATA:-salevault-data}:/app/data
+    # Runs as uid 1000 (the image's user); export UID and GID to match yours with ./data.
+    user: "${UID:-1000}:${GID:-1000}"
+    # Chromium needs more shared memory than Docker's default 64 MB.
+    shm_size: 1gb
+    restart: unless-stopped
+
+volumes:
+  salevault-data:

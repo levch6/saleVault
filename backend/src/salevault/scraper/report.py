@@ -1,5 +1,6 @@
 """Console output for scrape runs: live progress and the final summary (Rich)."""
 
+import os
 from collections.abc import Iterable
 
 from rich.console import Console
@@ -178,7 +179,11 @@ def render_run_outcome(console: Console, outcome: RunOutcome) -> None:
 
 def render_runs(console: Console, rows: list[RunRow]) -> None:
     if not rows:
-        console.print("No runs yet. Start one with [bold]just scrape prm[/].")
+        # In the container image there is no `just`; the CLI itself is on the PATH.
+        command = (
+            "salevault scrape prm" if os.environ.get("SALEVAULT_CONTAINER") else "just scrape prm"
+        )
+        console.print(f"No runs yet. Start one with [bold]{command}[/].")
         return
     table = Table(title="Scrape runs")
     for col in ("#", "Site", "Status", "Trigger", "Started", "Duration", "Items", "New", "Drops"):

@@ -13,6 +13,7 @@ Each record explains one significant decision: the context, what was decided, th
 | [0007](0007-reading-modivo.md) | Read Modivo's catalog pages with the one discount filter `robots.txt` allows, and the state they embed as data | accepted |
 | [0008](0008-reading-saks85.md) | Read Saks85's catalog pages, later pages through OpenCart's non-SEO URL (`&page=N`), by the owner's decision | accepted |
 | [0009](0009-shared-category-tree.md) | One shared category tree for all shops | accepted |
+| [0010](0010-container-image.md) | A container image (with a headed Chromium on Xvfb) for a one-command start | accepted |
 
 ## Writing a new record
 

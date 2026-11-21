@@ -72,3 +72,24 @@ def test_openapi_export(tmp_path: Path) -> None:
     assert result.exit_code == 0, result.output
     schema = json.loads(out.read_text())
     assert "/api/health" in schema["paths"]
+
+
+@pytest.mark.parametrize(
+    ("container", "expected"),
+    [(None, "exposes an API without authentication"), ("1", "publish it on 127.0.0.1 only")],
+)
+def test_serve_warns_about_a_public_bind(
+    monkeypatch: pytest.MonkeyPatch, container: str | None, expected: str
+) -> None:
+    started: list[str] = []
+    monkeypatch.setattr("salevault.cli.uvicorn.run", lambda *_a, **kw: started.append(kw["host"]))
+    if container is None:
+        monkeypatch.delenv("SALEVAULT_CONTAINER", raising=False)
+    else:
+        monkeypatch.setenv("SALEVAULT_CONTAINER", container)
+
+    result = runner.invoke(app, ["serve", "--host", "0.0.0.0"])  # noqa: S104 (the point of the test)
+
+    assert result.exit_code == 0, result.output
+    assert expected in " ".join(plain(result).split())
+    assert started == ["0.0.0.0"]  # noqa: S104

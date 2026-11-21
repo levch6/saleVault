@@ -10,6 +10,7 @@ The documentation follows the [Diataxis](https://diataxis.fr/) split: a tutorial
 
 ## Guides
 
+- [Running with Docker](guides/docker.md): the whole app in one container, started with one command.
 - [Collecting data](guides/scraping.md): running, resuming and cancelling scrapes; transports; troubleshooting.
 - [Maintenance](guides/maintenance.md): backups, database size, logs and archives, upgrades.
 - [Development](guides/development.md): local setup, checks, tests, migrations and the release flow.

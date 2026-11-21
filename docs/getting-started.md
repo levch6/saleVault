@@ -2,6 +2,8 @@
 
 This tutorial takes you from a fresh clone to a catalog of sale items sorted by discount. It takes about 15 minutes, most of it waiting for the first scrape.
 
+Only want to run the app? [Running with Docker](guides/docker.md) needs nothing but Docker. This page is the native setup, which is also the one for development.
+
 ## 1. Check the requirements
 
 - Linux, or WSL2 on Windows 11. The browser transport opens a regular Chromium window; on WSL2 it appears through WSLg.

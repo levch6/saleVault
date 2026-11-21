@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import os
 import signal
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -361,10 +362,18 @@ def serve(
     settings = get_settings()
     bind = host or settings.host
     if bind not in ("127.0.0.1", "localhost", "::1"):
-        console.print(
-            f"[bold yellow]Warning:[/] binding to {bind} exposes an API without authentication "
-            "that can start scrapes. Keep it on 127.0.0.1 unless you know what you are doing."
-        )
+        if os.environ.get("SALEVAULT_CONTAINER"):
+            # Inside a container the published port is the boundary (compose.yaml: localhost).
+            console.print(
+                "Serving on port "
+                f"{port or settings.port} in a container: publish it on 127.0.0.1 only."
+            )
+        else:
+            console.print(
+                f"[bold yellow]Warning:[/] binding to {bind} exposes an API without "
+                "authentication that can start scrapes. Keep it on 127.0.0.1 unless you know "
+                "what you are doing."
+            )
     uvicorn.run(
         "salevault.api.app:create_app",
         factory=True,

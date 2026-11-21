@@ -111,4 +111,4 @@ Repeatable procedures are skills in `.agents/skills/` (the open Agent Skills for
 
 ## Dependency updates
 
-Dependabot opens grouped pull requests monthly (Python, frontend, GitHub Actions, git hooks; releases younger than 7 days are skipped). They all touch lock files, so merge them one at a time: ask for `@dependabot rebase` onto the current `main`, wait for a green CI, then squash-merge with a one-line subject.
+Dependabot opens grouped pull requests monthly (Python, frontend, GitHub Actions, git hooks, Docker base images; releases younger than 7 days are skipped). They all touch lock files, so merge them one at a time: ask for `@dependabot rebase` onto the current `main`, wait for a green CI, then squash-merge with a one-line subject.

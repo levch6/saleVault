@@ -60,3 +60,17 @@ updates:
     commit-message:
       prefix: build
       include: scope
+
+  # Base images of the Dockerfile (tags and digests).
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    groups:
+      images:
+        patterns: ["*"]
+    commit-message:
+      prefix: build
+      include: scope

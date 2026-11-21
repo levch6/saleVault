@@ -13,6 +13,7 @@ Set them in the environment or in a `.env` file at the repository root (not comm
 | `SALEVAULT_HOST` | `127.0.0.1` | address the server binds to |
 | `SALEVAULT_PORT` | `8000` | port the server listens on |
 | `SALEVAULT_ALLOWED_HOSTS` | `["localhost", "127.0.0.1"]` | host names the API answers to (JSON list); requests for any other `Host` are refused |
+| `SALEVAULT_CONTAINER` | unset | set by the container image: `salevault serve` then notes that the published port is the boundary instead of warning about binding to all interfaces |
 
 The server binds to localhost on purpose: the API has no authentication and is meant for your own browser only. It also refuses requests for unknown host names (so a web page cannot point its own domain at your machine) and writes sent from other sites. `salevault serve` warns when it is asked to listen on anything but loopback.
 

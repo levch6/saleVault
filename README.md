@@ -32,10 +32,17 @@ just start            # open http://localhost:8000
 
 The [getting started](docs/getting-started.md) tutorial walks through it step by step.
 
+Or with Docker, without installing anything else (the image includes Chromium; see [running with Docker](docs/guides/docker.md)):
+
+```bash
+git clone https://github.com/levch6/saleVault.git && cd saleVault
+docker compose up --build    # then open http://localhost:8000 and press Refresh
+```
+
 ## Documentation
 
 - [Getting started](docs/getting-started.md)
-- Guides: [collecting data](docs/guides/scraping.md), [maintenance](docs/guides/maintenance.md), [development](docs/guides/development.md), [adding a shop](docs/guides/adding-a-shop.md)
+- Guides: [running with Docker](docs/guides/docker.md), [collecting data](docs/guides/scraping.md), [maintenance](docs/guides/maintenance.md), [development](docs/guides/development.md), [adding a shop](docs/guides/adding-a-shop.md)
 - Concepts: [architecture](docs/concepts/architecture.md), [how a scrape works](docs/concepts/scraping.md), [prices, discounts and badges](docs/concepts/prices-and-badges.md)
 - Reference: [command line](docs/reference/cli.md), [HTTP API](docs/reference/http-api.md), [configuration](docs/reference/configuration.md), [data model](docs/reference/data-model.md)
 - [Architecture decision records](docs/decisions/README.md)
