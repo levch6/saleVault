@@ -46,3 +46,17 @@ updates:
     commit-message:
       prefix: build
       include: scope
+
+  # Hook revisions in .pre-commit-config.yaml (gitleaks, actionlint); local hooks are skipped.
+  - package-ecosystem: pre-commit
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    groups:
+      hooks:
+        patterns: ["*"]
+    commit-message:
+      prefix: build
+      include: scope

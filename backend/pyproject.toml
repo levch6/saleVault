@@ -4,6 +4,8 @@ version = "0.1.0"
 description = "Scrapes sale sections of fashion shops and serves them sorted by discount"
 requires-python = ">=3.15"
 license = "MIT"
+# A local tool, never published: PyPI rejects uploads with this classifier.
+classifiers = ["Private :: Do Not Upload"]
 dependencies = [
     "alembic>=1.20.1",
     "curl-cffi>=0.17.0",
@@ -44,6 +46,15 @@ select = [
     "ASYNC",    # async pitfalls
     "RUF",      # ruff-specific
     "S",        # security (bandit)
+    "DTZ",      # timezone-aware datetimes (stored timestamps are UTC)
+    "PTH",      # pathlib instead of os.path
+    "RET",      # return statements
+    "PIE",      # misc lints
+    "FURB",     # refurb
+    "A",        # shadowed builtins
+    "ISC",      # implicit string concatenation
+    "G",        # logging format
+    "TID",      # tidy imports
 ]
 
 [tool.ruff.lint.per-file-ignores]

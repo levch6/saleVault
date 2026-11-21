@@ -67,7 +67,7 @@ The scraper talks to a shop through one of two transports. Both follow the same 
 ```bash
 just scrape prm --dry-run              # collect and summarize, write nothing
 just scrape prm --max-pages 1          # at most one page per segment (status is always partial)
-just scrape prm --dry-run --jsonl out.jsonl   # also export the normalized items
+just scrape prm --dry-run --jsonl ../data/exports/prm.jsonl   # also export the items
 ```
 
 All options are listed in the [command line reference](../reference/cli.md#salevault-scrape).

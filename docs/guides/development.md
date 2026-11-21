@@ -41,7 +41,7 @@ just test         # pytest + Vitest (offline)
 just fmt          # auto-format and safe fixes
 ```
 
-Git hooks (installed by `just setup`, or `just hooks`) run quick checks on the staged files, scan the staged changes for secrets (gitleaks), lint workflow changes (actionlint), refuse anything under `.notes/` or `data/`, and check the commit message. gitleaks and actionlint are pinned to commit SHAs of their official hook repositories and built by prek on the first `just hooks` (about a minute, network needed once); `just hooks-update` moves the pins to releases older than 7 days. If a hook rewrites files, stage them and commit again. Do not bypass hooks with `--no-verify`; fix what they report.
+Git hooks (installed by `just setup`, or `just hooks`) run quick checks on the staged files, scan the staged changes for secrets (gitleaks), lint workflow changes (actionlint), refuse anything under `.notes/` or `data/` and data-shaped files anywhere (`.jsonl`, `.db`, `.sqlite`, `.gz`; keep exports under `data/`), and check the commit message. gitleaks and actionlint are pinned to commit SHAs of their official hook repositories and built by prek on the first `just hooks` (about a minute, network needed once); Dependabot proposes new pins monthly; `just hooks-update` moves them by hand to releases older than 7 days. If a hook rewrites files, stage them and commit again. Do not bypass hooks with `--no-verify`; fix what they report.
 
 CI (`.github/workflows/check.yml`) runs `just check` and the UI build on every push to `main` and on pull requests. It never touches the network beyond installing packages.
 
@@ -103,8 +103,8 @@ uv run python scripts/bench_api.py <data-dir> [--runs 20]                # p50 /
 
 `AGENTS.md` is the brief for AI coding agents (Codex, Cursor, Copilot, Gemini CLI and others read it directly; `CLAUDE.md` imports it for Claude Code and adds that tool's specifics). Keep it in sync when commands, conventions or gotchas change.
 
-Repeatable procedures are skills in `.agents/skills/` (the open Agent Skills format: a folder with a `SKILL.md`): `add-a-shop`, `check-the-ui` and `merge-dependabot-prs`. `.claude/skills/` holds symlinks to them, so there is one copy. TanStack ships skills for its router in the npm packages; they are approved in `frontend/pnpm-workspace.yaml`, pnpm links them into `frontend/.claude/skills/` on install, and the root skill folders link `react-router`, `router-plugin` and `router-query` from there.
+Repeatable procedures are skills in `.agents/skills/` (the open Agent Skills format: a folder with a `SKILL.md`): `add-a-shop`, `check-the-ui` and `merge-dependabot-prs`. `.claude/skills/` holds symlinks to them, so there is one copy. TanStack ships skills for its router in the npm packages; they are approved in `frontend/pnpm-workspace.yaml`, pnpm links them into `frontend/.claude/skills/` on install, and the root skill folders link `react-router`, `router-plugin` and `router-query` from there. On a fresh clone those three links resolve only after `pnpm install` (part of `just setup`); a checkout on Windows without symlink support turns every link in `.claude/skills/` into a small text file, so work in WSL.
 
 ## Dependency updates
 
-Dependabot opens grouped pull requests monthly (Python, frontend, GitHub Actions; releases younger than 7 days are skipped). They all touch lock files, so merge them one at a time: ask for `@dependabot rebase` onto the current `main`, wait for a green CI, then squash-merge with a one-line subject.
+Dependabot opens grouped pull requests monthly (Python, frontend, GitHub Actions, git hooks; releases younger than 7 days are skipped). They all touch lock files, so merge them one at a time: ask for `@dependabot rebase` onto the current `main`, wait for a green CI, then squash-merge with a one-line subject.

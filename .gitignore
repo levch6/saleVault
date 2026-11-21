@@ -4,12 +4,23 @@
 # Runtime data: DB, browser profile, logs, raw dumps, backups
 /data/
 
+# Data-shaped files outside data/ (exports, database copies, raw dumps)
+*.jsonl
+*.json.gz
+*.db
+*.db-wal
+*.db-shm
+*.sqlite*
+
 # Secrets / local config
 .env
 .env.*
 !.env.example
 *.local
 .claude/settings.local.json
+
+# Git worktrees of coding agents
+/.claude/worktrees/
 
 # Python
 __pycache__/
@@ -19,17 +30,17 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 .coverage
-htmlcov/
+/backend/htmlcov/
 *.egg-info/
-build/
-dist/
+/backend/build/
+/backend/dist/
 
 # Node / frontend
 node_modules/
-frontend/dist/
+/frontend/dist/
 *.tsbuildinfo
 .vite/
-coverage/
+/frontend/coverage/
 
 # Tooling output
 .playwright-mcp/
@@ -44,3 +55,4 @@ test-results/
 !.vscode/settings.json
 .DS_Store
 Thumbs.db
+*:Zone.Identifier

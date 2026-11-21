@@ -34,6 +34,11 @@ repos:
         entry: .notes/ and data/ are local only and must never be committed
         language: fail
         files: ^(\.notes|data)/
+      - id: no-data-files
+        name: no data files (exports, database copies, raw dumps)
+        entry: scraped data and database files must never be committed; keep them in data/
+        language: fail
+        files: \.(jsonl|db|db-wal|db-shm|sqlite3?|gz)$
       - id: ruff-check
         name: ruff check
         entry: uv run --project backend --no-sync ruff check --fix --exit-non-zero-on-fix

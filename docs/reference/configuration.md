@@ -4,7 +4,7 @@ saleVault works without any configuration. Defaults live in code; a few paths an
 
 ## Environment variables
 
-Set them in the environment or in a `.env` file at the repository root (not committed).
+Set them in the environment or in a `.env` file at the repository root (not committed); `.env.example` lists them all, commented out.
 
 | Variable | Default | Meaning |
 |---|---|---|
@@ -22,7 +22,7 @@ Saved sizes are stored in the database (`settings` table) and edited on the Sett
 
 ## Shop settings
 
-Each shop has a config in `backend/src/salevault/scraper/sites/registry.py`: origin, paths, locale, number of workers, transport, headless mode and the mapping of the shop's gender codes. See [Adding a shop](../guides/adding-a-shop.md) for every field.
+Each shop has a config in `backend/src/salevault/scraper/sites/registry.py`: origin, paths, locale, number of workers, transport, headless mode and how the shop's gender sections map to the app's genders. See [Adding a shop](../guides/adding-a-shop.md) for every field.
 
 ## Run defaults
 
