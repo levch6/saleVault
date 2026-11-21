@@ -14,6 +14,8 @@ saleVault is a personal project maintained in spare time. Bug reports, ideas and
 3. `just check` must pass (CI runs the same).
 4. Commit messages are one line in Conventional Commits form, for example `feat(scraper): add price segmentation`; the commit-msg hook checks it. See [development](docs/guides/development.md#conventions) for the details.
 
+If you work with an AI coding agent, point it at `AGENTS.md`; it holds the same rules in more detail.
+
 ## Ground rules
 
 - **Scraping rules are not negotiable.** Pull requests that raise the default request pace, continue after a shop refuses requests, or add proxies, IP rotation, CAPTCHA solving or stealth tooling will be declined. See [the rules the scraper follows](docs/concepts/scraping.md#rules-the-scraper-follows).

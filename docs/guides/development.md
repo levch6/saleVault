@@ -99,6 +99,12 @@ uv run python scripts/bench_api.py <data-dir> [--runs 20]                # p50 /
 - Shop-specific logic lives only in `scraper/sites/`. The core, database, API and UI stay shop-agnostic.
 - External data is validated with Pydantic. On a schema mismatch the run fails loudly and the raw response is kept.
 
+## Coding agents
+
+`AGENTS.md` is the brief for AI coding agents (Codex, Cursor, Copilot, Gemini CLI and others read it directly; `CLAUDE.md` imports it for Claude Code and adds that tool's specifics). Keep it in sync when commands, conventions or gotchas change.
+
+Repeatable procedures are skills in `.agents/skills/` (the open Agent Skills format: a folder with a `SKILL.md`): `add-a-shop`, `check-the-ui` and `merge-dependabot-prs`. `.claude/skills/` holds symlinks to them, so there is one copy.
+
 ## Dependency updates
 
 Dependabot opens grouped pull requests monthly (Python, frontend, GitHub Actions; releases younger than 7 days are skipped). They all touch lock files, so merge them one at a time: ask for `@dependabot rebase` onto the current `main`, wait for a green CI, then squash-merge with a one-line subject.
