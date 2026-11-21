@@ -37,3 +37,7 @@ The shop's menus have a men's, a women's and a kids' section. Their sales add up
 - Every size is listed, sold-out ones marked unavailable; few left counts as last items. Size labels are those of the shop's size filter (XS, 38); its product cards show some in another system (34 for a women's XS).
 - The card names an item by its kind and color; the rest of its full name (model, color, fit) is only in the pictures' alt text, and becomes the subtitle.
 - The state belongs to the shop's frontend and can change with any release. The reader and the Pydantic models fail loudly, and the listing of the failing page is archived.
+
+## Updates
+
+- **2026-11-21:** the first full run, with two workers, made 906 requests in 24 minutes and found 63,649 of the 63,687 items the shop reported (99.9%; every segment at least 99.9%), with no refusals, retries or invalid items. The raw archive of the run is 28 MB.
