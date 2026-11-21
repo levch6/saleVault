@@ -1,6 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query'
 import { createRootRouteWithContext, Link, Outlet } from '@tanstack/react-router'
 import { HealthStatus } from '@/components/health-status'
+import { Logo } from '@/components/logo'
 import { RunControls } from '@/components/runs/run-controls'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -27,7 +28,11 @@ function RootLayout() {
       <div className="min-h-svh">
         <header className="sticky top-0 z-30 border-b bg-background/85 backdrop-blur">
           <div className="mx-auto flex max-w-screen-2xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2.5">
-            <Link to="/" className="font-heading text-lg font-semibold tracking-tight">
+            <Link
+              to="/"
+              className="flex items-center gap-2 font-heading text-lg font-semibold tracking-tight"
+            >
+              <Logo className="size-6 shrink-0" />
               saleVault
             </Link>
             <nav className="flex gap-1 text-sm">
