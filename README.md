@@ -28,7 +28,7 @@ just scrape prm           # first data (~17.5k items, about 8 minutes)
 just start                # build the UI, serve it on http://localhost:8000 and open the browser
 ```
 
-On Windows you can also run `just shortcut` once: it puts `saleVault.bat` on the desktop, which starts the app in WSL and opens the browser. Close its window to stop the app.
+On Windows you can also run `just shortcut` once: it puts a saleVault shortcut with the app icon on the desktop, which starts the app in WSL and opens the browser. Close its window to stop the app.
 
 ## Getting data
 

@@ -29,7 +29,8 @@ Personal, local-only tool: scrapes the sale sections of fashion shops (PRM.com, 
 - `just runs [--site prm]`: recent runs with status and catalog changes
 - `just db-upgrade`: apply migrations (scrapes do it automatically)
 - `just backup` / `just vacuum`: DB copy into `data/backups` (last 5) / compaction (also automatic after a run once free pages exceed 100 MB)
-- `just start` opens the browser once the server is healthy; `just shortcut` writes `saleVault.bat` to the Windows desktop (only run it when the user asks)
+- `just start` opens the browser once the server is healthy; `just shortcut` puts a `saleVault.lnk` with the app icon on the Windows desktop, pointing at a `.bat` and `.ico` in `%LOCALAPPDATA%\saleVault` (only run it when the user asks)
+- Logo: `frontend/public/favicon.svg` is the only source (black and white, inverted for dark browser themes); after changing it, `cd backend && uv run python scripts/make_icons.py` renders `favicon.ico`
 - `just fmt`, `just build`, `just gen-api`
 - New migration: `cd backend && uv run alembic revision --autogenerate -m "..."`, then review the file in `src/salevault/db/migrations/versions/`
 - Live tests (hit the real site, open a browser window): `cd backend && uv run pytest -m live`
