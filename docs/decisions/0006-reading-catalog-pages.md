@@ -28,7 +28,7 @@ The shop has no gender path filter exposed in its pages (applying its gender fil
 
 ## Consequences
 
-- A page is about 0.5 to 0.7 MB of HTML before compression for 24 items, and a full run is about 850 page views (the men's and women's sections overlap by the unisex items), roughly 30 minutes with one worker.
+- A page is about 0.5 to 0.7 MB of HTML before compression for 24 items, and a full run is about 850 page views (the men's and women's sections overlap by the unisex items). The first full run made 853 requests in 24 minutes with one worker and found 15,189 of the 15,190 items the shop reported; paging in the shop's popularity order stayed stable over that time.
 - No lowest price of the last 30 days, so no honest discount for this shop. Categories are the item's main category only; there is no category tree (ADR-0005 does not apply).
 - The listing shows only the sizes that can be bought now, so every listed size counts as in stock.
 - The shop rounds its discount badges (9.99% is shown as "-10 %"), while the Answear platform truncates; the adapter computes the discount the way the shop does.

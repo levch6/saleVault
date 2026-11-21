@@ -29,7 +29,7 @@ just scrape prm
 
 The scraper reads the shop's sale catalog the way the shop's own website loads it, about one request per second. You see a progress bar and, at the end, a summary with the deepest discounts. PRM has about 17,500 sale items and takes 5 to 10 minutes. Depending on the transport, a Chromium window may appear during the run; leave it open.
 
-Other shops: `just scrape answear_ua` (about 140,000 items, 30 to 40 minutes), `just scrape footshop_ua` (about 15,000 items, about 30 minutes) or `just scrape all`.
+Other shops: `just scrape answear_ua` (about 140,000 items, 30 to 40 minutes), `just scrape footshop_ua` (about 15,000 items, about 25 minutes) or `just scrape all`.
 
 ## 4. Open the app
 
