@@ -4,7 +4,7 @@ A local tool that collects sale items from fashion shops and shows them **sorted
 
 Supported shops: PRM.com (UA), with Answear.ua planned.
 
-> **Status:** usable for PRM: scraper, local catalog with price history, API and UI (catalog sorted by discount, filters, my sizes, item drawer with price chart, favorites, runs). Answear.ua is next.
+> **Status:** usable. Shops: PRM.com (UA) and Answear.ua. Scraper, local catalog with price history, API and UI (catalog sorted by discount, filters, my sizes, item drawer with price chart, favorites, runs).
 
 ## Requirements
 
@@ -26,6 +26,8 @@ On WSL2 the app opens in a regular Windows browser at `localhost`.
 
 ```bash
 just scrape prm                 # full PRM sale (~17.5k items, ~8 min) into data/salevault.db
+just scrape answear_ua          # Answear.ua (~143k items, about 30-40 min)
+just scrape all                 # every shop
 just scrape prm --resume        # continue a run that failed or was cancelled
 just runs                       # recent runs: status, duration, new items, price drops, removals
 just scrape prm --dry-run       # collect and print a summary without touching the DB
@@ -33,7 +35,7 @@ just scrape prm --dry-run       # collect and print a summary without touching t
 
 Each run is staged page by page and merged into the catalog in one transaction at the end, so an interrupted run never leaves half-updated data. Price changes are kept as a history. An item is treated as gone from the sale only after two successful runs in a row did not see it.
 
-The scraper drives a real Chromium through Playwright and calls the shop's own catalog API from the page, at a polite rate (about one request per second). PRM rejects headless browsers, so a Chromium window is shown during the run (WSLg on Windows 11). There is no stealth or anti-bot evasion: if the site blocks the run, the scraper stops and reports it.
+The scraper calls the shop's own catalog API at a polite rate (about one request per second per worker). By default (`--transport auto`) it uses a lightweight HTTP client with a browser TLS fingerprint (curl_cffi); if a shop refuses it, it falls back to a real Chromium driven by Playwright (a window is shown, since these shops reject headless browsers). If a shop blocks the run, the scraper stops and reports it; it does not try to get around blocks.
 
 ## Development
 
