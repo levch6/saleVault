@@ -53,15 +53,27 @@ backup:
 vacuum:
     cd {{ backend }} && uv run salevault db vacuum
 
-# Put a saleVault.bat on the Windows desktop that starts the app in WSL and opens the browser
+# Put a saleVault shortcut with the app icon on the Windows desktop (starts the app in WSL)
 shortcut:
     #!/usr/bin/env bash
     set -euo pipefail
-    profile=$(cmd.exe /c 'echo %USERPROFILE%' 2>/dev/null | tr -d '\r')
-    target="$(wslpath "$profile")/Desktop/saleVault.bat"
+    # A .bat cannot carry an icon, so the .bat and the .ico live in %LOCALAPPDATA%\saleVault
+    # and the desktop gets a .lnk pointing at them.
+    local_app=$(cmd.exe /c 'echo %LOCALAPPDATA%' 2>/dev/null | tr -d '\r')
+    dir="$(wslpath "$local_app")/saleVault"
+    mkdir -p "$dir"
+    cp {{ frontend }}/public/favicon.ico "$dir/saleVault.ico"
     printf '@echo off\r\ntitle saleVault\r\nwsl.exe -d %s --cd "%s" -- bash -lc "just start"\r\n' \
-        "$WSL_DISTRO_NAME" "$PWD" > "$target"
-    echo "Created $target (close its window to stop the app)"
+        "$WSL_DISTRO_NAME" "$PWD" > "$dir/saleVault.bat"
+    SV_DIR="$dir" WSLENV=SV_DIR/p powershell.exe -NoProfile -NonInteractive -Command '
+        $lnk = Join-Path ([Environment]::GetFolderPath("Desktop")) "saleVault.lnk";
+        $s = (New-Object -ComObject WScript.Shell).CreateShortcut($lnk);
+        $s.TargetPath = Join-Path $env:SV_DIR "saleVault.bat";
+        $s.IconLocation = (Join-Path $env:SV_DIR "saleVault.ico") + ",0";
+        $s.WorkingDirectory = $env:SV_DIR;
+        $s.Description = "Start saleVault";
+        $s.Save();
+        "Created " + $lnk + " (close its window to stop the app)"' | tr -d '\r'
 
 # Scrape a site into the local DB, e.g. `just scrape prm`, `just scrape prm --resume`, `--dry-run`
 scrape site *args:
