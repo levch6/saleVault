@@ -110,6 +110,6 @@ A personal project, not affiliated with or endorsed by PRM or Answear. It reads 
 backend/    Python package `salevault`: scraper, storage, catalog queries, HTTP API, CLI
 frontend/   single-page app
 justfile    all project commands
-.github/    CI: lint, type check, tests and UI build on every push
+.github/    CI (lint, type check, tests, UI build on every push) and Dependabot (monthly updates)
 data/       runtime data (database, backups, archives, logs); not tracked
 ```
