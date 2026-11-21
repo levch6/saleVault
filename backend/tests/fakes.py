@@ -1,14 +1,31 @@
 """Test doubles: a synthetic catalog adapter and a scripted transport."""
 
+import asyncio
 from collections import Counter, defaultdict
-from collections.abc import Mapping
+from collections.abc import AsyncIterator, Callable, Mapping
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from dataclasses import dataclass, field
 
-from salevault.domain.models import BrandRef, Gender, ProductRecord
-from salevault.scraper.base import Facets, FacetValue, HttpResponse, PageResult, Segment
+from salevault.domain.models import (
+    BrandRef,
+    CategoryRef,
+    Gender,
+    ImageRef,
+    ProductRecord,
+    SizeRecord,
+)
+from salevault.scraper.base import (
+    Facets,
+    FacetValue,
+    HttpResponse,
+    PageResult,
+    Segment,
+    SiteInfo,
+)
 from salevault.scraper.errors import ContractError
 
 GENDERS = {"M": Gender.MEN, "D": Gender.WOMEN, "H": Gender.HOME}
+FAKE_SITE = SiteInfo(code="fake", name="Fake shop", origin="https://shop.test", currency="UAH")
 
 
 @dataclass(frozen=True)
@@ -19,23 +36,51 @@ class FakeItem:
     """Whole currency units."""
 
 
-def make_record(item: FakeItem, *, site: str = "fake") -> ProductRecord:
+def make_record(
+    item: FakeItem,
+    *,
+    site: str = "fake",
+    regular: int | None = None,
+    min30: int | None = None,
+    brand: str = "1",
+) -> ProductRecord:
+    """A realistic record: brand, a two-level category path, one size in stock and one not."""
     return ProductRecord.create(
         site=site,
         external_id=item.id,
         url=f"https://shop.test/p/{item.id}",
         name=f"Product {item.id}",
         subtitle=None,
-        brand=BrandRef(external_id="1", name="Brand"),
-        color=None,
-        image=None,
-        gallery=(),
-        categories=(),
+        brand=BrandRef(external_id=brand, name=f"Brand {brand}"),
+        color="black",
+        image=ImageRef(name=f"{item.id}_F1.jpg", version="1"),
+        gallery=(ImageRef(name=f"{item.id}_F2.jpg", version="1"),),
+        categories=(
+            CategoryRef(external_id="100", name="Root"),
+            CategoryRef(external_id="101", name="Leaf"),
+        ),
         price_minor=item.price * 100,
-        price_regular_minor=item.price * 200,
-        price_min30_minor=None,
+        price_regular_minor=(regular if regular is not None else item.price * 2) * 100,
+        price_min30_minor=min30 * 100 if min30 is not None else None,
         available_for_buy=True,
-        sizes=(),
+        sizes=(
+            SizeRecord(
+                external_id="1",
+                label="S",
+                variation_id=f"{item.id}-S",
+                ean=None,
+                availability="IN_STOCK",
+                in_stock=True,
+            ),
+            SizeRecord(
+                external_id="2",
+                label="M",
+                variation_id=f"{item.id}-M",
+                ean=None,
+                availability="OUT_OF_STOCK",
+                in_stock=False,
+            ),
+        ),
     )
 
 
@@ -63,22 +108,28 @@ class FakeAdapter:
     page_size: int = 10
     max_pages: int = 5
     code: str = "fake"
-    failures: dict[tuple[str, int], list[Exception]] = field(
+    failures: dict[tuple[str, int], list[BaseException]] = field(
         default_factory=lambda: defaultdict(list)
     )
     blank_pages: set[tuple[str, int]] = field(default_factory=set)
     """Pages that come back empty, simulating items lost to catalog drift."""
     calls: list[tuple[str, int]] = field(default_factory=list)
     warmed: bool = False
+    hang_on: tuple[str, int] | None = None
+    """A page that never answers, to test cancellation from outside."""
+    hung: asyncio.Event = field(default_factory=asyncio.Event)
 
     async def warm_up(self) -> None:
         self.warmed = True
 
-    def fail(self, segment: Segment, page: int, *errors: Exception) -> None:
+    def fail(self, segment: Segment, page: int, *errors: BaseException) -> None:
         self.failures[(segment.key, page)].extend(errors)
 
     async def fetch_page(self, segment: Segment, page: int) -> PageResult:
         self.calls.append((segment.key, page))
+        if (segment.key, page) == self.hang_on:
+            self.hung.set()
+            await asyncio.Event().wait()
         pending = self.failures.get((segment.key, page))
         if pending:
             raise pending.pop(0)
@@ -135,3 +186,13 @@ class FakeTransport:
     ) -> HttpResponse:
         self.posts.append((path, dict(body), dict(headers)))
         return self.responses.pop(0)
+
+
+def opener(adapter: FakeAdapter) -> Callable[[], AbstractAsyncContextManager[FakeAdapter]]:
+    """`open_adapter` for `execute_run` that hands out an already built fake."""
+
+    @asynccontextmanager
+    async def _open() -> AsyncIterator[FakeAdapter]:
+        yield adapter
+
+    return _open

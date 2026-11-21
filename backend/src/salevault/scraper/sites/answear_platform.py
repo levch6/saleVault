@@ -25,6 +25,7 @@ from salevault.scraper.base import (
     HttpResponse,
     PageResult,
     Segment,
+    SiteInfo,
     Transport,
 )
 from salevault.scraper.errors import BlockedError, ContractError, ScrapeError, TransientError
@@ -65,6 +66,12 @@ class AnswearPlatformConfig:
     @property
     def products_path(self) -> str:
         return f"{self.base_path}/api/products"
+
+    @property
+    def site_info(self) -> SiteInfo:
+        return SiteInfo(
+            code=self.code, name=self.display_name, origin=self.origin, currency=self.currency
+        )
 
 
 # --- API response models (camelCase on the wire) -----------------------------------------
