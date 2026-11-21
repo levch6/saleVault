@@ -5,6 +5,7 @@ description = "Scrapes sale sections of fashion shops and serves them sorted by 
 requires-python = ">=3.15"
 dependencies = [
     "alembic>=1.20.1",
+    "curl-cffi>=0.17.0",
     "fastapi>=0.165.0",
     "playwright>=1.65.2",
     "pydantic>=2.14.4",

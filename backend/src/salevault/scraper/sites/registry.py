@@ -1,4 +1,4 @@
-"""Known sites. Answear.ua is added in phase 5, after its config is verified."""
+"""Known sites."""
 
 from salevault.scraper.base import Transport
 from salevault.scraper.sites.answear_platform import AnswearPlatformAdapter, AnswearPlatformConfig
@@ -13,7 +13,17 @@ PRM = AnswearPlatformConfig(
     headless=False,  # headless shell gets HTTP 403 at warm-up (checked 2026-11-21)
 )
 
-SITES: dict[str, AnswearPlatformConfig] = {PRM.code: PRM}
+ANSWEAR_UA = AnswearPlatformConfig(
+    code="answear_ua",
+    display_name="Answear.ua",
+    origin="https://answear.ua",
+    base_path="",
+    warmup_path="/",
+    concurrency=2,
+    headless=False,  # same Akamai setup as PRM; verified in phase 5
+)
+
+SITES: dict[str, AnswearPlatformConfig] = {PRM.code: PRM, ANSWEAR_UA.code: ANSWEAR_UA}
 
 
 def get_config(code: str) -> AnswearPlatformConfig:

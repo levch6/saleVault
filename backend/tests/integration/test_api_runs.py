@@ -70,23 +70,23 @@ def wait_for_status(client: TestClient, run_id: int, status: str, timeout: float
 def test_sites_list_known_shops_before_any_run(client: TestClient) -> None:
     sites = client.get("/api/sites").json()
 
-    assert sites == [
-        {
-            "code": "prm",
-            "name": "PRM",
-            "origin": "https://prm.com",
-            "active_products": 0,
-            "last_completed": None,
-            "latest": None,
-        }
-    ]
+    assert [s["code"] for s in sites] == ["answear_ua", "prm"]
+    prm = next(s for s in sites if s["code"] == "prm")
+    assert prm == {
+        "code": "prm",
+        "name": "PRM",
+        "origin": "https://prm.com",
+        "active_products": 0,
+        "last_completed": None,
+        "latest": None,
+    }
 
 
 def test_sites_show_catalog_size_and_runs(client: TestClient) -> None:
     factory: sessionmaker[Session] = client.app.state.factory  # type: ignore[attr-defined]
     run_id = seed_run(factory, PRM.site_info, [(Gender.MEN, [product("a", 1, regular=2)])])
 
-    site = client.get("/api/sites").json()[0]
+    site = next(s for s in client.get("/api/sites").json() if s["code"] == "prm")
 
     assert site["active_products"] == 1
     assert site["last_completed"]["id"] == run_id
