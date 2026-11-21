@@ -1,18 +1,18 @@
 # saleVault
 
-Personal, local-only tool: scrapes the sale sections of fashion shops (PRM.com, then Answear.ua) and shows items sorted by discount, biggest first, with filters, price history and favorites. Single user, not hosted, runs in WSL2 (Ubuntu) on Windows 11.
+Personal, local-only, non-commercial tool: scrapes the sale sections of fashion shops (PRM and Answear.ua) and shows items sorted by discount, biggest first, with filters, price history and favorites. Single user, not hosted, runs in WSL2 (Ubuntu) on Windows 11. The repository is public: everything tracked must be fit for publication (no shop data, neutral wording, nothing personal).
 
 ## Where things are
 
-- `docs/` is local-only and gitignored. It holds the plan, specs, ADRs and research for the developer and Claude. Never commit it and never link to it from tracked files.
-  - `docs/plan.md`: roadmap and the current phase. Tick checkboxes when finishing tasks.
-  - `docs/specs/`: product, architecture, scraper, data-model, api, ui. They are the source of truth for behavior.
-  - `docs/adr/`: decisions. Add a new ADR for any significant change of approach; don't rewrite accepted ones.
-  - `docs/research/`: findings about site APIs, plus real response samples.
+- `docs/`: public documentation (Diataxis: `getting-started.md`, `guides/`, `concepts/`, `reference/`, `decisions/`). It is the source of truth for behavior: update it in the same commit as the code. Add a new ADR in `docs/decisions/` for any significant change of approach; don't rewrite accepted ones.
+- `.notes/`: local-only working notes, gitignored. Never commit it and never link to it from tracked files.
+  - `.notes/plan.md`: roadmap, phase checklists, decision log and backlog. Tick checkboxes when finishing tasks.
+  - `.notes/research/`: findings about site APIs, plus real response samples (shop content: never copy into the repo).
+  - `.notes/archive/`: the original internal specs and ADRs (superseded by `docs/`).
 - `backend/`: Python package `salevault` (scraper, db, api, cli).
 - `frontend/`: Vite + React SPA.
 - `data/`: runtime data (DB, browser profile, logs, raw dumps). Gitignored.
-- `.claude/`: Claude Code project config. `settings.json` holds shared permissions (asks before anything that hits the shops or leaves the machine, never reads `data/browser/`); `hooks/guard.py` blocks hand edits of generated files, `--no-verify`, force-adding `docs/` or `data/`, and `core.hooksPath` changes. Personal overrides go to `.claude/settings.local.json` (gitignored).
+- `.claude/`: Claude Code project config. `settings.json` holds shared permissions (asks before anything that hits the shops or leaves the machine, never reads `data/browser/`); `hooks/guard.py` blocks hand edits of generated files, `--no-verify`, force-adding `.notes/` or `data/`, and `core.hooksPath` changes. Personal overrides go to `.claude/settings.local.json` (gitignored).
 
 ## Stack
 
@@ -68,6 +68,7 @@ Personal, local-only tool: scrapes the sale sections of fashion shops (PRM.com, 
 ## Conventions
 
 - **Language:** everything in the repository is in English: code, comments, docs, commit messages, UI text. Product data stays in Ukrainian, as the site provides it.
+- **Tone for public files:** neutral and factual about the shops; no vendor names of their protection, no wording that suggests evasion. The disclaimer lives in `README.md`.
 - **Markdown style:** plain ASCII only. No emojis, no special symbols (arrows, check marks, typographic quotes, ellipsis characters, currency signs), no em or en dashes. Use `-`, `->`, `>=`, `...` instead.
 - **Commits:** a single line in Conventional Commits format, `type(scope): summary`, lowercase and imperative, e.g. `feat(scraper): add price segmentation`. Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `build`, `perf`. No body, no trailers.
 - Before committing a phase, `just lint && just test` must pass.
@@ -75,7 +76,7 @@ Personal, local-only tool: scrapes the sale sections of fashion shops (PRM.com, 
 
 ## Engineering rules
 
-- **Scraping etiquette (hard rule):** call the site's own JSON API at the polite default rate from the site config, through a stock Playwright Chromium or, as an optional transport planned for phase 5, `curl_cffi` with its Chrome profile. On repeated 403/429, stop the run and report. Respect robots.txt. Off-limits: stealth plugins, CAPTCHA solving, proxy rotation.
+- **Scraping rules (hard rule, see `docs/concepts/scraping.md`):** read only the public catalog through the shop's own JSON API; keep the default pace (random 0.8-1.6 s per worker); respect robots.txt; on repeated 403/429 stop the run and report, never continue another way. Transports: the HTTP client (curl_cffi with its Chrome profile, the owner's choice) and a stock Playwright Chromium. Off-limits: proxies or IP rotation, CAPTCHA solving, stealth plugins, raising the pace, touching login or account pages.
 - Money is stored as integer minor units (`*_minor`); the API returns whole UAH.
 - Site-specific logic lives only in adapters (`scraper/sites/`). The core, DB, API and UI stay site-agnostic.
 - Validate external data with Pydantic. On a schema mismatch, fail loudly and save the raw response.

@@ -1,5 +1,5 @@
-# Local-only docs: plan, specs, ADRs, research (never pushed)
-/docs/
+# Local-only working notes: plan, research, archived specs and ADRs (never pushed)
+/.notes/
 
 # Runtime data: DB, browser profile, logs, raw dumps, backups
 /data/
