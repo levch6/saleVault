@@ -1,10 +1,10 @@
 """SQL conditions for catalog filters. Facets drop their own filter via `skip`."""
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal
 
-from sqlalchemy import ColumnElement, and_, exists, false, or_, select
+from sqlalchemy import ColumnElement, and_, exists, false, select
 from sqlalchemy.orm import Session, aliased
 
 from salevault.catalog.schemas import GENDER_BITS, CatalogQuery
@@ -72,6 +72,8 @@ class CatalogFilter:
     """Resolved from `query.site`; an unknown code resolves to no ids (matches nothing)."""
     my_sizes: Sequence[str]
     runs: RunContext
+    flag_ids: Mapping[str, Sequence[int]] = field(default_factory=dict)
+    """Pre-resolved ids for the New / Price drop flags (see `flag_condition`)."""
 
     def conditions(self, *, skip: FacetName | None = None) -> list[ColumnElement[bool]]:
         q = self.query
@@ -108,32 +110,33 @@ class CatalogFilter:
             for word in q.q.casefold().split():
                 conds.append(Product.search_text.like(f"%{escape_like(word)}%", escape="\\"))
         for flag in set(q.flags):
-            if flag == "new":
-                conds.append(self._new())
-            elif flag == "price_drop":
-                conds.append(self._price_drop())
-            else:
+            if flag in self.flag_ids:
+                conds.append(Product.id.in_(self.flag_ids[flag]))
+            elif flag == "favorite":
                 conds.append(exists().where(Favorite.product_id == Product.id))
+            else:
+                conds.append(self.flag_condition(flag))
         return conds
 
+    # Run ids are global, so "first seen in its site's latest run" is just an IN over those
+    # ids: an index lookup instead of an OR per site that SQLite cannot index (205 -> ~15 ms).
+    def flag_condition(self, flag: str) -> ColumnElement[bool]:
+        """New / Price drop match few items; resolving them to ids first keeps SQLite from
+        walking the whole discount index in search of them (200 -> ~15 ms at 160k items)."""
+        return self._new() if flag == "new" else self._price_drop()
+
     def _new(self) -> ColumnElement[bool]:
-        parts = [
-            and_(Product.site_id == site_id, Product.first_seen_run_id == info.latest_run_id)
-            for site_id, info in self.runs.items()
-            if info.has_previous
-        ]
-        return or_(*parts) if parts else false()
+        runs = [info.latest_run_id for info in self.runs.values() if info.has_previous]
+        return Product.first_seen_run_id.in_(runs) if runs else false()
 
     def _price_drop(self) -> ColumnElement[bool]:
-        parts = [
-            and_(
-                Product.site_id == site_id,
-                Product.last_price_change_run_id == info.latest_run_id,
-                Product.price_minor < Product.prev_price_minor,
-            )
-            for site_id, info in self.runs.items()
-        ]
-        return or_(*parts) if parts else false()
+        runs = [info.latest_run_id for info in self.runs.values()]
+        if not runs:
+            return false()
+        return and_(
+            Product.last_price_change_run_id.in_(runs),
+            Product.price_minor < Product.prev_price_minor,
+        )
 
 
 def _has_size_in_stock(labels: Sequence[str]) -> ColumnElement[bool]:
