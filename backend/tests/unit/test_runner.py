@@ -51,7 +51,7 @@ async def test_full_run_collects_every_item_once(adapter: FakeAdapter) -> None:
     assert adapter.warmed
     assert result.complete
     assert result.expected_total == len(adapter.items)
-    assert set(result.items) == {i.id for i in adapter.items}
+    assert set(result.genders) == {i.id for i in adapter.items}
     assert len(adapter.calls) == len(set(adapter.calls)), "no page is fetched twice"
     assert result.requests == len(adapter.calls)
     assert raw == adapter.calls
@@ -156,4 +156,21 @@ async def test_concurrent_workers_collect_the_same_items(adapter: FakeAdapter) -
     result = await runner.run()
 
     assert result.complete
-    assert set(result.items) == {i.id for i in adapter.items}
+    assert set(result.genders) == {i.id for i in adapter.items}
+
+
+async def test_light_mode_keeps_summaries_but_not_items(adapter: FakeAdapter) -> None:
+    full, _, _ = make_runner(adapter)
+    full_result = await full.run()
+    adapter.calls.clear()
+    light, _, _ = make_runner(adapter, keep_items=False)
+
+    result = await light.run()
+
+    assert result.items is None
+    assert result.item_count == len(adapter.items)
+    assert result.complete
+    assert sum(result.discount_counts.values()) == result.item_count
+    assert result.discount_counts == full_result.discount_counts
+    assert [p.external_id for p in result.top] == [p.external_id for p in full_result.top]
+    assert len(result.top) == min(50, len(adapter.items))

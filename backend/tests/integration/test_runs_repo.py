@@ -112,7 +112,11 @@ def test_resume_loads_plan_pages_and_items(factory: sessionmaker[Session]) -> No
     assert state.expected_total == 3
     assert state.plan == tuple(plan)
     assert dict(state.done_pages) == {("sex=M;price=0-99", 1): ("a", "b")}
+    assert state.items is not None
     assert set(state.items) == {"a", "b"}
+    assert set(state.genders) == {"a", "b"}
+    assert sum(state.discount_counts.values()) == 2
+    assert [p.external_id for p in state.top] == ["b", "a"]  # same %, b saves more
     assert state.genders["a"] == Gender.MEN
     row = repo.get(run_id)
     assert (row.status, row.trigger, row.error, row.pages_done, row.items_seen) == (

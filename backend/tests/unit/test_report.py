@@ -23,7 +23,7 @@ def test_top_discounts_orders_by_discount_then_savings() -> None:
     cheap = make_record(FakeItem("a", frozenset({"M"}), 100))  # 50% off, saves 100
     pricey = make_record(FakeItem("b", frozenset({"M"}), 1000))  # 50% off, saves 1000
 
-    top = top_discounts({"a": cheap, "b": pricey}, 1)
+    top = top_discounts([cheap, pricey], 1)
 
     assert [p.external_id for p in top] == ["b"]
 
@@ -35,8 +35,11 @@ def test_render_summary_smoke() -> None:
         started_at=datetime(2026, 11, 21, 10, 0, tzinfo=UTC),
         finished_at=datetime(2026, 11, 21, 10, 5, tzinfo=UTC),
         expected_total=1,
-        items={"a": record},
+        item_count=1,
         genders={"a": Gender.MEN},
+        discount_counts={50: 1},
+        top=[record],
+        items=None,
         segments=[SegmentReport(key="sex=M", expected=1, fetched=1, pages=1, truncated=False)],
         requests=2,
         retries=0,
@@ -68,8 +71,11 @@ def test_render_run_outcome_and_runs_table() -> None:
         started_at=started,
         finished_at=datetime(2026, 11, 21, 10, 5, tzinfo=UTC),
         expected_total=1,
-        items={"a": record},
+        item_count=1,
         genders={"a": Gender.MEN},
+        discount_counts={50: 1},
+        top=[record],
+        items=None,
         segments=[],
         requests=1,
         retries=0,
