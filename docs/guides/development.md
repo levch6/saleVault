@@ -45,6 +45,8 @@ Git hooks (installed by `just setup`, or `just hooks`) run quick checks on the s
 
 CI (`.github/workflows/check.yml`) runs `just check` and the UI build on every push to `main` and on pull requests. It never touches the network beyond installing packages.
 
+`main` is protected by a repository ruleset: it cannot be deleted or force-pushed, history stays linear, and changes from anyone but the maintainer arrive as pull requests that are squash-merged once the `lint, test and build` check passes on an up-to-date branch.
+
 ## Tests
 
 | Kind | Where | Notes |

@@ -35,6 +35,7 @@ Personal, local-only, non-commercial tool: scrapes the sale sections of fashion 
 - Logo: `frontend/public/favicon.svg` is the only source (black and white, inverted for dark browser themes); after changing it, `cd backend && uv run python scripts/make_icons.py` renders `favicon.ico`
 - `just fmt`, `just build`, `just gen-api`
 - CI (`.github/workflows/check.yml`): `just check` + `just build` on push to main and on PRs. Actions are pinned to commit SHAs with a `# vX.Y.Z` comment (zizmor requires it; Dependabot bumps both); checkout keeps `persist-credentials: false`. Keep it offline (no live tests, no Playwright browsers). Node and pnpm versions come from `.node-version` and `packageManager` in `frontend/package.json`
+- Branch protection: ruleset "protect main" (no deletion, no force push, linear history, changes through a PR merged by squash with the `lint, test and build` check green on an up-to-date branch). The repository admin role bypasses it, so the owner's (and Claude's, through the owner's `gh`) direct pushes to `main` work and print a "bypassed rule" notice; that is expected.
 - Dependabot (`.github/dependabot.yml`): monthly, minor and patch grouped per ecosystem (uv, npm, actions), 7-day cooldown. Its commits carry a body, so merge its PRs by squash with the PR title to keep history single-line
 - New migration: `cd backend && uv run alembic revision --autogenerate -m "..."`, then review the file in `src/salevault/db/migrations/versions/`
 - Live tests (hit the real site, open a browser window): `cd backend && uv run pytest -m live`
