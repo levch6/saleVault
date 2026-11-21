@@ -9,6 +9,10 @@ just dev          # API on :8000 with auto-reload + Vite on http://localhost:517
 
 `just dev` stops both servers on Ctrl+C or when either one crashes. API docs (OpenAPI) are at http://localhost:8000/api/docs.
 
+### Editor
+
+`.editorconfig` carries the basic rules for any editor. For VS Code, `.vscode/extensions.json` recommends the extensions and `.vscode/settings.json` makes the editor agree with the hooks: ruff formats and fixes Python on save and mypy (from `backend/.venv`, run in `backend/`) reports type errors instead of Pylance; Biome formats the frontend with `frontend/biome.json` and the project's own binary; the TypeScript 7 native language service (the "TypeScript 7" extension) uses the project's `typescript` package; generated files open read-only. In WSL, open the repository root through the WSL extension after `just setup`. Launch and task configurations stay personal (`.gitignore` keeps them out).
+
 ## Repository layout
 
 ```

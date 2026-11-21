@@ -1,0 +1,14 @@
+{
+  // Formatters and checkers that match the git hooks and CI (see docs/guides/development.md).
+  "recommendations": [
+    "charliermarsh.ruff",
+    "ms-python.python",
+    "ms-python.mypy-type-checker",
+    "biomejs.biome",
+    "TypeScriptTeam.native-preview",
+    "bradlc.vscode-tailwindcss",
+    "tamasfe.even-better-toml",
+    "editorconfig.editorconfig",
+    "nefrob.vscode-just-syntax"
+  ]
+}
