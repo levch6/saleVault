@@ -277,11 +277,11 @@ export interface components {
             /** Genders */
             genders: components["schemas"]["ValueCount"][];
             /** Categories */
-            categories: components["schemas"]["CategoryFacet"][];
+            categories: components["schemas"]["CategoryFacet"][] | null;
             /** Brands */
             brands: components["schemas"]["BrandFacet"][];
             /** Sizes */
-            sizes: components["schemas"]["SizeFacet"][];
+            sizes: components["schemas"]["SizeFacet"][] | null;
             price: components["schemas"]["Range"];
             discount: components["schemas"]["Range"];
         };
@@ -706,6 +706,8 @@ export interface operations {
                 flags?: ("new" | "price_drop" | "favorite")[];
                 /** @description Also items that left the sale */
                 include_inactive?: boolean;
+                /** @description Also count categories and sizes (the slow part on big catalogs). The UI asks for heavy=false first so the cheap facets show up at once. */
+                heavy?: boolean;
             };
             header?: never;
             path?: never;

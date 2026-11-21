@@ -6,8 +6,8 @@ from salevault.api.deps import SessionDep
 from salevault.api.errors import ApiError, error_responses
 from salevault.catalog import queries
 from salevault.catalog.schemas import (
-    CatalogQuery,
     Facets,
+    FacetsQuery,
     ProductDetail,
     ProductPage,
     ProductsQuery,
@@ -23,7 +23,7 @@ def list_products(query: Annotated[ProductsQuery, Query()], session: SessionDep)
 
 
 @router.get("/facets")
-def get_facets(query: Annotated[CatalogQuery, Query()], session: SessionDep) -> Facets:
+def get_facets(query: Annotated[FacetsQuery, Query()], session: SessionDep) -> Facets:
     """Counts per filter value; each facet ignores its own filter."""
     return queries.facets(session, query)
 

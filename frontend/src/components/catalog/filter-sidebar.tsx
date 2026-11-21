@@ -39,6 +39,14 @@ function Section({
   )
 }
 
+function SectionLoading({ title }: { title: string }) {
+  return (
+    <Section title={title}>
+      <div className="h-16 animate-pulse rounded-md bg-muted" />
+    </Section>
+  )
+}
+
 function Clear({ onClick }: { onClick: () => void }) {
   return (
     <button
@@ -82,10 +90,14 @@ function CheckRow({
 export function FilterSidebar({
   search,
   facets,
+  detail,
   onChange,
 }: {
   search: CatalogSearch
+  /** Cheap facets (heavy=false). */
   facets: Facets | undefined
+  /** Full facets: categories and sizes come from here once ready. */
+  detail: Facets | undefined
   onChange: OnChange
 }) {
   if (!facets) return <div className="h-96 animate-pulse rounded-xl bg-muted" />
@@ -172,9 +184,17 @@ export function FilterSidebar({
         ))}
       </Section>
 
-      <CategorySection search={search} categories={facets.categories} onChange={onChange} />
+      {detail?.categories ? (
+        <CategorySection search={search} categories={detail.categories} onChange={onChange} />
+      ) : (
+        <SectionLoading title="Category" />
+      )}
       <BrandSection search={search} facets={facets} onChange={onChange} />
-      <SizeSection search={search} facets={facets} onChange={onChange} />
+      {detail?.sizes ? (
+        <SizeSection search={search} sizes={detail.sizes} onChange={onChange} />
+      ) : (
+        <SectionLoading title="Size in stock" />
+      )}
     </div>
   )
 }
@@ -387,14 +407,14 @@ function BrandSection({
 
 function SizeSection({
   search,
-  facets,
+  sizes,
   onChange,
 }: {
   search: CatalogSearch
-  facets: Facets
+  sizes: NonNullable<Facets['sizes']>
   onChange: OnChange
 }) {
-  const groups = useMemo(() => groupSizes(facets.sizes), [facets.sizes])
+  const groups = useMemo(() => groupSizes(sizes), [sizes])
   const selected = new Set(search.size ?? [])
   return (
     <Section

@@ -46,6 +46,14 @@ class CatalogQuery(BaseModel):
     include_inactive: bool = Field(False, description="Also items that left the sale")
 
 
+class FacetsQuery(CatalogQuery):
+    heavy: bool = Field(
+        True,
+        description="Also count categories and sizes (the slow part on big catalogs). "
+        "The UI asks for heavy=false first so the cheap facets show up at once.",
+    )
+
+
 class ProductsQuery(CatalogQuery):
     sort: Sort = "discount_desc"
     page: int = Field(1, ge=1)
@@ -166,9 +174,10 @@ class Facets(_Out):
     total: int
     sites: list[ValueCount]
     genders: list[ValueCount]
-    categories: list[CategoryFacet]
+    categories: list[CategoryFacet] | None
+    """None when not requested (heavy=false)."""
     brands: list[BrandFacet]
-    sizes: list[SizeFacet]
+    sizes: list[SizeFacet] | None
     price: Range
     discount: Range
 

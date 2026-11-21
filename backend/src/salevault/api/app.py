@@ -16,7 +16,7 @@ from salevault.api.errors import install_error_handlers
 from salevault.api.launcher import CommandFactory, RunLauncher, scrape_command
 from salevault.api.routers import catalog, favorites, health, runs, settings
 from salevault.catalog import queries
-from salevault.catalog.schemas import CatalogQuery
+from salevault.catalog.schemas import FacetsQuery
 from salevault.config import Settings, get_settings
 from salevault.db.engine import create_db_engine, make_session_factory, session_scope, sqlite_url
 from salevault.db.migrate import upgrade
@@ -44,7 +44,8 @@ def create_app(
             """The unfiltered facets are the first thing the UI asks for; compute them early."""
             try:
                 with session_scope(factory) as session:
-                    queries.facets(session, CatalogQuery())
+                    queries.facets(session, FacetsQuery(heavy=False))
+                    queries.facets(session, FacetsQuery())
             except Exception:
                 log.exception("Warming the facet cache failed")
 

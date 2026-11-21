@@ -49,12 +49,12 @@ export const productsQuery = (query: ApiCatalogQuery) =>
     placeholderData: keepPreviousData,
   })
 
-export const facetsQuery = (query: Omit<ApiCatalogQuery, 'sort'>) =>
+export const facetsQuery = (query: Omit<ApiCatalogQuery, 'sort'>, heavy = true) =>
   queryOptions({
-    queryKey: ['facets', query],
+    queryKey: ['facets', query, heavy],
     queryFn: async ({ signal }) => {
       const { data, error, response } = await api.GET('/api/facets', {
-        params: { query },
+        params: { query: { ...query, heavy } },
         signal,
       })
       if (!data) throw apiError(error, response)

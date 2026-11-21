@@ -78,6 +78,13 @@ def main() -> None:
             ),
             ("facets: size M (cold)", "/api/facets", {"size": "M"}, True),
             ("facets: brand (cold)", "/api/facets", {"brand": brand}, True),
+            ("facets: core only (cold)", "/api/facets", {"heavy": False}, True),
+            (
+                "facets: core, women >= 50% (cold)",
+                "/api/facets",
+                {"heavy": False, "gender": "women", "discount_min": 50},
+                True,
+            ),
         ]
         print(f"{'case':32} {'p50 ms':>8} {'p95 ms':>8}")
         for label, path, params, cold in cases:
