@@ -20,6 +20,7 @@ from salevault.catalog.schemas import FacetsQuery
 from salevault.config import Settings, get_settings
 from salevault.db.engine import create_db_engine, make_session_factory, session_scope, sqlite_url
 from salevault.db.migrate import upgrade
+from salevault.db.runs import RunRepository
 
 log = logging.getLogger(__name__)
 
@@ -39,6 +40,7 @@ def create_app(
         engine = create_db_engine(sqlite_url(config.db_path))
         upgrade(engine)
         factory = make_session_factory(engine)
+        write_factory = make_session_factory(engine, write=True)
 
         def warm_facets() -> None:
             """The unfiltered facets are the first thing the UI asks for; compute them early."""
@@ -50,8 +52,9 @@ def create_app(
                 log.exception("Warming the facet cache failed")
 
         app.state.factory = factory
+        app.state.write_factory = write_factory
         app.state.launcher = RunLauncher(
-            factory,
+            RunRepository(write_factory, reader=factory),
             data_dir=config.data_dir,
             command=scrape_command_factory,
             on_finish=warm_facets,

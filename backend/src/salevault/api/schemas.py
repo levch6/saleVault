@@ -71,3 +71,6 @@ class StartRunIn(BaseModel):
 
 class StartRunOut(BaseModel):
     run_ids: list[int]
+    skipped: list[str] = Field(
+        default_factory=list, description="With site=all: shops that could not start, and why"
+    )

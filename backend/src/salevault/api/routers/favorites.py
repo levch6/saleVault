@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Response
 
-from salevault.api.deps import SessionDep
+from salevault.api.deps import SessionDep, WriteSessionDep
 from salevault.api.errors import ApiError, error_responses
 from salevault.catalog import queries
 from salevault.catalog.schemas import FavoriteIn, FavoriteOut
@@ -15,7 +15,9 @@ def list_favorites(session: SessionDep) -> list[FavoriteOut]:
 
 
 @router.put("/favorites/{product_id}", status_code=204, responses=error_responses(404))
-def add_favorite(product_id: int, session: SessionDep, body: FavoriteIn | None = None) -> Response:
+def add_favorite(
+    product_id: int, session: WriteSessionDep, body: FavoriteIn | None = None
+) -> Response:
     """Idempotent. The price at the moment of adding is kept to show the change since."""
     if not queries.add_favorite(session, product_id, body.note if body else None):
         raise ApiError(404, "not_found", f"Product {product_id} not found")
@@ -23,6 +25,6 @@ def add_favorite(product_id: int, session: SessionDep, body: FavoriteIn | None =
 
 
 @router.delete("/favorites/{product_id}", status_code=204)
-def remove_favorite(product_id: int, session: SessionDep) -> Response:
+def remove_favorite(product_id: int, session: WriteSessionDep) -> Response:
     queries.remove_favorite(session, product_id)
     return Response(status_code=204)

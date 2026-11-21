@@ -5,6 +5,7 @@ the DB (`scrape_runs`), which the UI polls.
 """
 
 import asyncio
+import contextlib
 import os
 import signal
 import sys
@@ -13,9 +14,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy.orm import Session, sessionmaker
-
-from salevault.db.runs import RunAlreadyRunningError, RunRepository, RunRow
+from salevault.db.runs import RunAlreadyRunningError, RunRepository, RunRow, same_process
 
 CommandFactory = Callable[[str, bool | None], list[str]]
 KEEP_LOGS = 20
@@ -40,14 +39,14 @@ def scrape_command(site: str, headed: bool | None) -> list[str]:
 class RunLauncher:
     def __init__(
         self,
-        factory: sessionmaker[Session],
+        repo: RunRepository,
         *,
         data_dir: Path,
         command: CommandFactory = scrape_command,
         startup_timeout_s: float = 60.0,
         on_finish: Callable[[], None] | None = None,
     ) -> None:
-        self._repo = RunRepository(factory)
+        self._repo = repo
         self._data_dir = data_dir
         self._command = command
         self._startup_timeout_s = startup_timeout_s
@@ -89,6 +88,7 @@ class RunLauncher:
                     raise RunAlreadyRunningError(f"A run of {site} is already running")
                 raise LaunchError(f"The scraper exited with code {process.returncode}: {tail}")
             if loop.time() > deadline:
+                process.terminate()  # never let it scrape after we reported a failure
                 raise LaunchError(f"The scraper did not register a run in time; see {log_path}")
             await asyncio.sleep(0.2)
 
@@ -102,16 +102,19 @@ class RunLauncher:
         task.add_done_callback(self._tasks.discard)
 
     def cancel(self, run_id: int) -> RunRow:
+        # Reap first: a dead run's pid may belong to an unrelated process by now.
+        self._repo.reap_dead()
         row = self._repo.find(run_id)
         if row is None:
             raise KeyError(run_id)
-        pid = self._repo.pid_of(run_id)
-        if row.status != "running" or pid is None:
+        process = self._repo.pid_of(run_id)
+        if row.status != "running" or process is None:
             raise RunNotRunningError(f"Run #{run_id} is not running (status: {row.status})")
-        try:
-            os.kill(pid, signal.SIGTERM)  # the scraper finishes as `cancelled`
-        except ProcessLookupError:
-            self._repo.active_run(row.site)  # the process is gone: reap the run as failed
+        pid, started = process
+        if same_process(pid, started):
+            with contextlib.suppress(ProcessLookupError):  # exited in the meantime
+                os.kill(pid, signal.SIGTERM)  # the scraper finishes as `cancelled`
+        self._repo.reap_dead()  # gone in the meantime: recorded as failed
         return self._repo.get(run_id)
 
 

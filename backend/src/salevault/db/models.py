@@ -11,6 +11,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -50,6 +51,13 @@ class ScrapeRun(Base):
         CheckConstraint(f"status IN {RUN_STATUSES}", name="status"),
         CheckConstraint(f"trigger IN {RUN_TRIGGERS}", name="trigger"),
         Index(None, "site_id", "status", "finished_at"),
+        # At most one running run per site, whatever races happen between processes.
+        Index(
+            "uq_scrape_runs_one_running_per_site",
+            "site_id",
+            unique=True,
+            sqlite_where=text("status = 'running'"),
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -57,6 +65,8 @@ class ScrapeRun(Base):
     status: Mapped[str] = mapped_column(String(16), default="running")
     trigger: Mapped[str] = mapped_column(String(8))
     pid: Mapped[int | None]
+    pid_start: Mapped[int | None]
+    """Start time of the process (clock ticks since boot): pids are reused, this is not."""
     started_at: Mapped[datetime] = mapped_column(default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(default=utcnow)
     """Heartbeat, bumped on every progress update."""

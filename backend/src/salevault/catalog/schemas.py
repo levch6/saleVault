@@ -6,6 +6,9 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+MAX_ID = 2**63 - 1
+"""Largest integer SQLite stores; bigger ids or prices would overflow the driver (HTTP 500)."""
+
 GenderCode = Literal["men", "women", "home", "kids"]
 Flag = Literal["new", "price_drop", "favorite"]
 Badge = Literal["new", "price_drop"]

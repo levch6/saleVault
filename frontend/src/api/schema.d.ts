@@ -580,6 +580,11 @@ export interface components {
         StartRunOut: {
             /** Run Ids */
             run_ids: number[];
+            /**
+             * Skipped
+             * @description With site=all: shops that could not start, and why
+             */
+            skipped?: string[];
         };
         /** ValidationError */
         ValidationError: {

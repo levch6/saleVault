@@ -10,6 +10,10 @@ from sqlalchemy.engine.interfaces import DBAPIConnection
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import ConnectionPoolEntry
 
+BUSY_TIMEOUT_MS = 120_000
+"""How long a write waits for another writer. Longer than the slowest merge of a big catalog
+(about 40 s), so a second scraper or an API write waits instead of failing."""
+
 
 def sqlite_url(path: Path) -> str:
     return f"sqlite:///{path}"
@@ -30,7 +34,7 @@ def create_db_engine(url: str) -> Engine:
             "PRAGMA journal_mode=WAL",
             "PRAGMA synchronous=NORMAL",
             "PRAGMA foreign_keys=ON",
-            "PRAGMA busy_timeout=5000",
+            f"PRAGMA busy_timeout={BUSY_TIMEOUT_MS}",
             # Facets aggregate the whole catalog: a bigger page cache and mmap roughly halve that.
             "PRAGMA cache_size=-65536",
             "PRAGMA mmap_size=268435456",
@@ -41,7 +45,8 @@ def create_db_engine(url: str) -> Engine:
 
     @event.listens_for(engine, "begin")
     def _on_begin(connection: Any) -> None:
-        connection.exec_driver_sql("BEGIN")
+        mode = connection.get_execution_options().get("sqlite_begin", "")
+        connection.exec_driver_sql(f"BEGIN {mode}".rstrip())
 
     return engine
 
@@ -52,8 +57,16 @@ def analyze(factory: sessionmaker[Session]) -> None:
         session.execute(text("ANALYZE"))
 
 
-def make_session_factory(engine: Engine) -> sessionmaker[Session]:
-    return sessionmaker(engine, expire_on_commit=False)
+def make_session_factory(engine: Engine, *, write: bool = False) -> sessionmaker[Session]:
+    """Sessions for reads, or with `write=True` for transactions that write.
+
+    Writers start with `BEGIN IMMEDIATE`. A deferred transaction that reads first has to upgrade
+    its lock when it writes, and SQLite fails that upgrade at once, ignoring the busy timeout,
+    when another connection has written in between. Readers stay deferred: in WAL mode they
+    never wait for writers.
+    """
+    bind = engine.execution_options(sqlite_begin="IMMEDIATE") if write else engine
+    return sessionmaker(bind, expire_on_commit=False)
 
 
 @contextmanager

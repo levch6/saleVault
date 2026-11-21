@@ -6,9 +6,11 @@ import os
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from pathlib import Path
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
 from salevault.db.engine import session_scope
@@ -58,9 +60,74 @@ def pid_alive(pid: int) -> bool:
     return True
 
 
+def process_start(pid: int) -> int | None:
+    """Start time of a process in clock ticks since boot (Linux), or None if unknown.
+
+    Pids are reused (WSL starts counting from the bottom after every restart), so a stored pid
+    alone cannot tell whether a process is still the scraper that registered the run.
+    """
+    try:
+        stat = Path(f"/proc/{pid}/stat").read_text()
+    except OSError:
+        return None
+    fields = stat.rpartition(")")[2].split()  # the name in parentheses may contain spaces
+    try:
+        return int(fields[19])  # field 22 of the file; fields[0] is field 3
+    except IndexError, ValueError:
+        return None
+
+
+def same_process(pid: int, start: int | None) -> bool:
+    """Is `pid` alive and still the process that started at `start`?"""
+    if not pid_alive(pid):
+        return False
+    current = process_start(pid)
+    return start is None or current is None or current == start
+
+
+def _is_dead(run: ScrapeRun) -> bool:
+    if run.pid is None or not same_process(run.pid, run.pid_start):
+        return True
+    return utcnow() - run.updated_at > STALE_AFTER
+
+
+def _mark_dead(run: ScrapeRun, site_code: str) -> None:
+    log.warning("Run #%d of %s died without finishing; marking it failed", run.id, site_code)
+    now = utcnow()
+    run.status = "failed"
+    run.finished_at = now
+    run.updated_at = now
+    run.error = "The scraper process ended unexpectedly"
+
+
+def mark_finished(
+    session: Session,
+    run_id: int,
+    status: str,
+    *,
+    error: str | None = None,
+    stats: Mapping[str, object] | None = None,
+) -> None:
+    """Record the outcome of a run inside the caller's transaction (e.g. the merge)."""
+    run = session.get_one(ScrapeRun, run_id)
+    now = utcnow()
+    run.status = status
+    run.finished_at = now
+    run.updated_at = now
+    run.error = error
+    if stats is not None:
+        run.stats_json = json.dumps(dict(stats))
+
+
 class RunRepository:
-    def __init__(self, factory: sessionmaker[Session]) -> None:
+    """Run rows. `factory` must start write transactions (`make_session_factory(write=True)`);
+    `reader`, if given, serves the read-only queries without taking the write lock."""
+
+    def __init__(
+        self, factory: sessionmaker[Session], *, reader: sessionmaker[Session] | None = None
+    ) -> None:
         self._factory = factory
+        self._reader = reader or factory
 
     def start(self, site: SiteInfo, *, trigger: str, pid: int | None = None) -> int:
         """Create a new running run; refuses if another run of the site is alive."""
@@ -73,11 +140,19 @@ class RunRepository:
             )
             session.execute(delete(RunItem).where(RunItem.run_id.in_(stale)))
             session.execute(delete(RunPage).where(RunPage.run_id.in_(stale)))
+            pid = pid or os.getpid()
             run = ScrapeRun(
-                site_id=site_row.id, trigger=trigger, pid=pid or os.getpid(), status="running"
+                site_id=site_row.id,
+                trigger=trigger,
+                pid=pid,
+                pid_start=process_start(pid),
+                status="running",
             )
             session.add(run)
-            session.flush()
+            try:
+                session.flush()
+            except IntegrityError as exc:  # another process won the race for this site
+                raise RunAlreadyRunningError(f"A run of {site.code} is already running") from exc
             return run.id
 
     def resume(
@@ -101,6 +176,7 @@ class RunRepository:
             run.status = "running"
             run.trigger = trigger
             run.pid = pid or os.getpid()
+            run.pid_start = process_start(run.pid)
             run.error = None
             run.finished_at = None
             run.updated_at = utcnow()
@@ -115,17 +191,36 @@ class RunRepository:
         stats: Mapping[str, object] | None = None,
     ) -> None:
         with session_scope(self._factory) as session:
-            run = session.get_one(ScrapeRun, run_id)
-            now = utcnow()
-            run.status = status
-            run.finished_at = now
-            run.updated_at = now
-            run.error = error
-            if stats is not None:
-                run.stats_json = json.dumps(dict(stats))
+            mark_finished(session, run_id, status, error=error, stats=stats)
+
+    def reap_dead(self) -> int:
+        """Mark running runs whose process is gone (or silent for too long) as failed.
+
+        Called on reads, so a crashed scraper never shows as running forever. Looks first with
+        the reader and takes the write lock only when there is something to reap.
+        """
+        with session_scope(self._reader) as session:
+            suspects = [
+                run.id
+                for run in session.scalars(select(ScrapeRun).where(ScrapeRun.status == "running"))
+                if _is_dead(run)
+            ]
+        if not suspects:
+            return 0
+        reaped = 0
+        with session_scope(self._factory) as session:
+            for run, code in session.execute(
+                select(ScrapeRun, Site.code)
+                .join(Site, Site.id == ScrapeRun.site_id)
+                .where(ScrapeRun.id.in_(suspects), ScrapeRun.status == "running")
+            ):
+                if _is_dead(run):
+                    _mark_dead(run, code)
+                    reaped += 1
+        return reaped
 
     def list_runs(self, *, site: str | None = None, limit: int = 20) -> list[RunRow]:
-        with session_scope(self._factory) as session:
+        with session_scope(self._reader) as session:
             query = (
                 select(ScrapeRun, Site.code)
                 .join(Site, Site.id == ScrapeRun.site_id)
@@ -135,6 +230,21 @@ class RunRepository:
             if site is not None:
                 query = query.where(Site.code == site)
             return [_row(run, code) for run, code in session.execute(query)]
+
+    def latest(self, site_code: str, *, statuses: Sequence[str] | None = None) -> RunRow | None:
+        """The site's newest run, optionally only among the given statuses."""
+        with session_scope(self._reader) as session:
+            query = (
+                select(ScrapeRun, Site.code)
+                .join(Site, Site.id == ScrapeRun.site_id)
+                .where(Site.code == site_code)
+                .order_by(ScrapeRun.started_at.desc(), ScrapeRun.id.desc())
+                .limit(1)
+            )
+            if statuses is not None:
+                query = query.where(ScrapeRun.status.in_(statuses))
+            row = session.execute(query).first()
+            return _row(row[0], row[1]) if row else None
 
     def active_run(self, site_code: str) -> RunRow | None:
         """The site's live running run, after reaping dead ones; None if the site is idle."""
@@ -154,7 +264,7 @@ class RunRepository:
             return None
 
     def run_id_for_pid(self, pid: int) -> int | None:
-        with session_scope(self._factory) as session:
+        with session_scope(self._reader) as session:
             return session.scalar(
                 select(ScrapeRun.id)
                 .where(ScrapeRun.pid == pid, ScrapeRun.status == "running")
@@ -162,19 +272,25 @@ class RunRepository:
                 .limit(1)
             )
 
-    def pid_of(self, run_id: int) -> int | None:
-        with session_scope(self._factory) as session:
-            return session.scalar(select(ScrapeRun.pid).where(ScrapeRun.id == run_id))
+    def pid_of(self, run_id: int) -> tuple[int, int | None] | None:
+        """The pid of a run and the start time of that process, if a pid is stored."""
+        with session_scope(self._reader) as session:
+            row = session.execute(
+                select(ScrapeRun.pid, ScrapeRun.pid_start).where(ScrapeRun.id == run_id)
+            ).first()
+            if row is None or row.pid is None:
+                return None
+            return row.pid, row.pid_start
 
     def find(self, run_id: int) -> RunRow | None:
-        with session_scope(self._factory) as session:
+        with session_scope(self._reader) as session:
             run = session.get(ScrapeRun, run_id)
             if run is None:
                 return None
             return _row(run, session.get_one(Site, run.site_id).code)
 
     def get(self, run_id: int) -> RunRow:
-        with session_scope(self._factory) as session:
+        with session_scope(self._reader) as session:
             run = session.get_one(ScrapeRun, run_id)
             code = session.get_one(Site, run.site_id).code
             return _row(run, code)
@@ -183,17 +299,12 @@ class RunRepository:
         for run in session.scalars(
             select(ScrapeRun).where(ScrapeRun.site_id == site.id, ScrapeRun.status == "running")
         ):
-            stale = utcnow() - run.updated_at > STALE_AFTER
-            if run.pid is not None and pid_alive(run.pid) and not stale:
+            if not _is_dead(run):
                 raise RunAlreadyRunningError(
                     f"Run #{run.id} of {site.code} is still running (pid {run.pid})"
                 )
-            log.warning(
-                "Run #%d of %s died without finishing; marking it failed", run.id, site.code
-            )
-            run.status = "failed"
-            run.finished_at = utcnow()
-            run.error = "The scraper process ended unexpectedly"
+            _mark_dead(run, site.code)
+            session.flush()  # free the one-running-run-per-site index before a new insert
 
 
 class DbRunSink:

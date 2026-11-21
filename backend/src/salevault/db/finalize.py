@@ -128,6 +128,7 @@ def finalize_run(
 
     session.execute(delete(RunItem).where(RunItem.run_id == run_id))
     session.execute(delete(RunPage).where(RunPage.run_id == run_id))
+    run.category_tree_json = None  # merged into `categories`; up to 150 KB per run otherwise
     return RunStats(
         seen=counters.seen,
         new=counters.new,

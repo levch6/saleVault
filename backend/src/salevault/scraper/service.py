@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from salevault.db.engine import analyze, session_scope
 from salevault.db.finalize import RunStats, finalize_run
 from salevault.db.maintenance import compact_if_bloated
-from salevault.db.runs import DbRunSink, RunRepository
+from salevault.db.runs import DbRunSink, RunRepository, mark_finished
 from salevault.scraper.base import SiteAdapter, SiteInfo
 from salevault.scraper.errors import ScrapeError
 from salevault.scraper.runner import (
@@ -80,16 +80,33 @@ async def execute_run(
             )
             result = await runner.run(state)
         status = "success" if result.complete else "partial"
+        duration = (result.finished_at - result.started_at).total_seconds()
+        # The merge and the outcome commit together: the catalog never shows a merged run that
+        # is still `running`, and a crash right after the merge cannot leave it half-recorded.
         with session_scope(factory) as session:
             stats = finalize_run(session, run_id, deactivate=status == "success")
+            mark_finished(
+                session,
+                run_id,
+                status,
+                stats=stats.to_json()
+                | {
+                    "expected": result.expected_total,
+                    "coverage": round(result.completeness, 4),
+                    "requests": result.requests,
+                    "retries": result.retries,
+                    "invalid_items": result.invalid_items,
+                    "duration_s": round(duration, 1),
+                },
+            )
     except asyncio.CancelledError:
-        repo.finish(run_id, "cancelled", error="Cancelled")
+        _record_failure(repo, run_id, "cancelled", "Cancelled")
         raise
     except ScrapeError as exc:
-        repo.finish(run_id, "failed", error=str(exc))
+        _record_failure(repo, run_id, "failed", str(exc))
         raise
     except Exception as exc:
-        repo.finish(run_id, "failed", error=f"{type(exc).__name__}: {exc}")
+        _record_failure(repo, run_id, "failed", f"{type(exc).__name__}: {exc}")
         raise
 
     try:
@@ -99,21 +116,15 @@ async def execute_run(
             compact_if_bloated(database)
     except Exception as exc:  # housekeeping is an optimization, never a reason to fail a run
         log.warning("Housekeeping after run #%d failed: %s", run_id, exc)
-
-    duration = (result.finished_at - result.started_at).total_seconds()
-    repo.finish(
-        run_id,
-        status,
-        stats=stats.to_json()
-        | {
-            "expected": result.expected_total,
-            "coverage": round(result.completeness, 4),
-            "requests": result.requests,
-            "retries": result.retries,
-            "duration_s": round(duration, 1),
-        },
-    )
     return RunOutcome(run_id=run_id, status=status, result=result, stats=stats)
+
+
+def _record_failure(repo: RunRepository, run_id: int, status: str, error: str) -> None:
+    """Record why a run ended; never let a failure to record hide the original error."""
+    try:
+        repo.finish(run_id, status, error=error)
+    except Exception:
+        log.exception("Could not record run #%d as %s; it will be reaped as failed", run_id, status)
 
 
 def _database_path(factory: sessionmaker[Session]) -> Path | None:

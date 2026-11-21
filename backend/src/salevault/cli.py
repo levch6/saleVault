@@ -55,11 +55,11 @@ def _setup_logging(verbose: bool) -> None:
     logging.getLogger("alembic").setLevel(logging.WARNING)
 
 
-def _open_database() -> tuple[Engine, sessionmaker[Session]]:
+def _open_database(*, write: bool = False) -> tuple[Engine, sessionmaker[Session]]:
     """Open the local DB, applying pending migrations first."""
     engine = create_db_engine(sqlite_url(get_settings().db_path))
     upgrade(engine)
-    return engine, make_session_factory(engine)
+    return engine, make_session_factory(engine, write=write)
 
 
 @app.command()
@@ -232,7 +232,7 @@ async def _persisted_run(
         ) as adapter:
             yield adapter
 
-    engine, factory = _open_database()
+    engine, factory = _open_database(write=True)
     try:
         with make_progress(console) as progress:
             return await execute_run(

@@ -2,6 +2,7 @@ from alembic.autogenerate import compare_metadata
 from alembic.migration import MigrationContext
 from sqlalchemy import Engine, inspect, text
 
+from salevault.db.engine import BUSY_TIMEOUT_MS
 from salevault.db.migrate import downgrade
 from salevault.db.models import Base
 
@@ -23,4 +24,4 @@ def test_connection_pragmas(engine: Engine) -> None:
     with engine.connect() as connection:
         assert connection.execute(text("PRAGMA journal_mode")).scalar() == "wal"
         assert connection.execute(text("PRAGMA foreign_keys")).scalar() == 1
-        assert connection.execute(text("PRAGMA busy_timeout")).scalar() == 5000
+        assert connection.execute(text("PRAGMA busy_timeout")).scalar() == BUSY_TIMEOUT_MS
