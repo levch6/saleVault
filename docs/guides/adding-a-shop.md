@@ -24,7 +24,7 @@ PRM and Answear.ua run on the same platform, so they share `AnswearPlatformAdapt
 | `origin`, `base_path` | site origin and the path prefix of the catalog and API, e.g. `https://prm.com` and `/ua` |
 | `warmup_path` | page opened first, like a visitor would (usually the sale page) |
 | `locale`, `currency`, `api_version` | values the site's frontend sends with API requests |
-| `concurrency` | parallel workers; keep 1 unless the catalog is very large |
+| `concurrency` | parallel workers; start with 1, and use 2 only for a run of many pages after a full run without refusals |
 | `headless` | `False` when the shop does not serve Playwright's headless mode |
 | `transport` | `auto`, `browser` or `http` (see [collecting data](scraping.md#transports)) |
 | `sort` | sort used for paging inside a segment; `""` (popularity) gives the most stable pages |

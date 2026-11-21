@@ -38,7 +38,7 @@ FOOTSHOP_UA = FootshopConfig(
         "women": FootshopSection("/uk/2581-zinoca-moda-znizki", Gender.WOMEN),
         "kids": FootshopSection("/uk/2986-ditaca-moda-znizki", Gender.KIDS),
     },
-    concurrency=1,
+    concurrency=2,  # about 850 pages per run; the first run with one worker had no refusals
 )
 
 SITES: dict[str, SiteConfig] = {config.code: config for config in (PRM, ANSWEAR_UA, FOOTSHOP_UA)}

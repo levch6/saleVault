@@ -33,3 +33,7 @@ The shop has no gender path filter exposed in its pages (applying its gender fil
 - The listing shows only the sizes that can be bought now, so every listed size counts as in stock.
 - The shop rounds its discount badges (9.99% is shown as "-10 %"), while the Answear platform truncates; the adapter computes the discount the way the shop does.
 - The embedded JSON belongs to the shop's frontend and can change with any release. The Pydantic models fail loudly and the listing of the failing page is archived, as with the API shops.
+
+## Updates
+
+- **2026-11-21:** after the first full run (one worker, no refusals) the shop uses two workers, like Answear.ua; a run takes about 12 minutes.

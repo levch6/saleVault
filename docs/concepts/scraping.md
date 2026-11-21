@@ -8,7 +8,7 @@ saleVault is a personal, non-commercial tool. It is built to read a shop the way
 
 - **Public data only.** It reads the public sale catalog: no login, no account, no checkout, no personal data.
 - **The shop's own data, the shop's own way.** It uses the same JSON catalog API that the shop's website calls in your browser. When a shop's `robots.txt` disallows that API (Footshop), it reads the catalog pages instead, the same pages a visitor loads, and takes the product list from the data embedded in them.
-- **Polite pace.** Each worker waits a random 0.8 to 1.6 s after every request. PRM and Footshop use one worker, Answear.ua two. A run may make at most 25% more requests than the pages it planned (and never more than 10,000).
+- **Polite pace.** Each worker waits a random 0.8 to 1.6 s after every request. PRM uses one worker, Answear.ua and Footshop two. A run may make at most 25% more requests than the pages it planned (and never more than 10,000).
 - **robots.txt.** The paths it uses (the start page, the sale page, the catalog API or the catalog pages) are not disallowed by the shops' `robots.txt`. It never touches disallowed paths such as the cart, checkout, account pages or, for Footshop, its API.
 - **Stops when refused.** The first HTTP 403 or 429 of a run pauses every worker for 60 s; any further refusal in the same run stops it and reports it.
 - **No evasion tooling.** No proxies or IP rotation, no CAPTCHA solving, no stealth browser plugins.
