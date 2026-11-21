@@ -25,9 +25,11 @@ Personal, local-only tool: scrapes the sale sections of fashion shops (PRM.com, 
 - `just dev`: backend on :8000 (reload) + Vite on :5173 (proxies `/api`)
 - `just start`: build the UI, then a single process on :8000 serves UI + API
 - `just check`: lint + type check + tests (`just lint`, `just test`); run before every commit
-- `just scrape prm [args]`: scrape a site (currently always `--dry-run`); e.g. `--max-pages 1` for a quick smoke run, `--jsonl path` to export items
+- `just scrape prm [args]`: scrape a site into the DB; `--resume` continues an interrupted run, `--dry-run` only prints a summary, `--max-pages 1` for a quick smoke run, `--jsonl path` exports items
+- `just runs [--site prm]`: recent runs with status and catalog changes
+- `just db-upgrade`: apply migrations (scrapes do it automatically)
 - `just fmt`, `just build`, `just gen-api`
-- Coming with later phases: `just db-upgrade`
+- New migration: `cd backend && uv run alembic revision --autogenerate -m "..."`, then review the file in `src/salevault/db/migrations/versions/`
 - Live tests (hit the real site, open a browser window): `cd backend && uv run pytest -m live`
 
 ## Gotchas
@@ -37,6 +39,8 @@ Personal, local-only tool: scrapes the sale sections of fashion shops (PRM.com, 
 - pnpm 12 asks for approval of agent "skills" shipped by `@tanstack/react-router` and `@tanstack/router-plugin`. They are deliberately left unapproved; don't approve them without asking the user.
 - shadcn's `cn` helper comes from the `cn` package (shadcn-ui/cn) via `@/lib/utils`.
 - PRM does not serve Playwright's headless shell (HTTP 403 at warm-up), so its site config runs a headed Chromium window through WSLg.
+- SQLAlchemy 2.1: never pass a `Result` to `dict()` (it has `.keys()`, so dict treats it as a mapping); use a comprehension. `Result.tuples()` is deprecated.
+- The DB lives in `data/salevault.db` (SQLite, WAL). The engine disables pysqlite's implicit transactions and emits `BEGIN` itself (`db/engine.py`); keep it that way.
 - Test fixtures must be anonymized: build them with `backend/scripts/make_fixture.py` from `data/raw/...` archives, never copy raw shop responses into the repo.
 
 ## Conventions

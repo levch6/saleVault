@@ -4,7 +4,7 @@ A local tool that collects sale items from fashion shops and shows them **sorted
 
 Supported shops: PRM.com (UA), with Answear.ua planned.
 
-> **Status:** early development. The PRM scraper works in dry-run mode (prints a summary); storage and the catalog UI are next.
+> **Status:** early development. The PRM scraper fills a local SQLite catalog with price history; the HTTP API and the catalog UI are next.
 
 ## Requirements
 
@@ -25,10 +25,13 @@ On WSL2 the app opens in a regular Windows browser at `localhost`.
 ## Scraping
 
 ```bash
-just scrape prm                 # full PRM sale (~17k items, a few minutes), prints the top discounts
-just scrape prm --max-pages 1   # quick smoke run
-just scrape prm --jsonl ../data/exports/prm.jsonl   # also export normalized items
+just scrape prm                 # full PRM sale (~17.5k items, ~8 min) into data/salevault.db
+just scrape prm --resume        # continue a run that failed or was cancelled
+just runs                       # recent runs: status, duration, new items, price drops, removals
+just scrape prm --dry-run       # collect and print a summary without touching the DB
 ```
+
+Each run is staged page by page and merged into the catalog in one transaction at the end, so an interrupted run never leaves half-updated data. Price changes are kept as a history. An item is treated as gone from the sale only after two successful runs in a row did not see it.
 
 The scraper drives a real Chromium through Playwright and calls the shop's own catalog API from the page, at a polite rate (about one request per second). PRM does not serve headless browsers, so a Chromium window is shown during the run (WSLg on Windows 11). There are no stealth plugins: if the site refuses the run, the scraper stops and reports it.
 
