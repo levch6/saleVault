@@ -45,49 +45,62 @@ def test_concurrent_writers_wait_for_each_other(
 ) -> None:
     """Read, someone else writes, then write: a deferred transaction failed here at once."""
     seed_run(writer, FAKE_SITE, [(Gender.MEN, [product("x", 100, regular=200)])])
+    blocked, done = threading.Event(), threading.Event()
     errors: list[Exception] = []
 
     def other_writer() -> None:
         try:
-            other = sqlite3.connect(db_file(engine), timeout=10, isolation_level=None)
+            other = sqlite3.connect(db_file(engine), timeout=0, isolation_level=None)
+            try:
+                other.execute("BEGIN IMMEDIATE")  # fails at once if our transaction holds the lock
+            except sqlite3.OperationalError:
+                blocked.set()  # proof of contention; now wait like any writer does
+                other.execute("PRAGMA busy_timeout = 10000")
+                other.execute("BEGIN IMMEDIATE")
             other.execute("UPDATE scrape_runs SET items_seen = items_seen + 1")
+            other.execute("COMMIT")
             other.close()
+            done.set()
         except Exception as exc:
             errors.append(exc)
 
     thread = threading.Thread(target=other_writer)
     with session_scope(writer) as session:
-        product_id = session.scalars(select(Product.id)).one()
+        product_id = session.scalars(select(Product.id)).one()  # our transaction begins here
         thread.start()
-        time.sleep(0.2)
+        assert blocked.wait(10), "the other writer must find the write lock already taken"
         assert queries.add_favorite(session, product_id, None)
     thread.join()
 
     assert errors == []
+    assert done.is_set()
 
 
 def test_staging_waits_for_a_long_write_lock(engine: Engine, writer: sessionmaker[Session]) -> None:
     """Another shop's merge holds the write lock for a while; this scraper's page must wait."""
     run_id = RunRepository(writer).start(FAKE_SITE, trigger="ui")
-    released = threading.Event()
+    locked = threading.Event()
+    released_at: list[float] = []
 
     def hold_lock() -> None:
         holder = sqlite3.connect(db_file(engine), isolation_level=None)
         holder.execute("BEGIN IMMEDIATE")
         holder.execute("UPDATE scrape_runs SET items_seen = items_seen")
-        time.sleep(1.5)
+        locked.set()
+        time.sleep(1.0)  # how long the "merge" holds the lock, not an ordering guess
+        released_at.append(time.monotonic())
         holder.execute("COMMIT")
         holder.close()
-        released.set()
 
     thread = threading.Thread(target=hold_lock)
     thread.start()
-    time.sleep(0.2)
+    assert locked.wait(10)
     page = PageResult(count=1, items=(product("p", 10, regular=20),), facets=Facets(), raw="{}")
     DbRunSink(writer, run_id).on_page(Segment(), 1, Gender.MEN, page)
+    staged_at = time.monotonic()
     thread.join()
 
-    assert released.is_set()
+    assert staged_at > released_at[0], "the page was staged only after the lock was released"
     assert RunRepository(writer).get(run_id).items_seen == 1
 
 
