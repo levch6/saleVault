@@ -1,0 +1,903 @@
+{
+  "count": 9119,
+  "sortingOrder": [
+    "popularity",
+    "date_desc",
+    "price_asc",
+    "price_desc"
+  ],
+  "urlFilters": "sort=price_asc",
+  "filters": [
+    {
+      "name": "sex",
+      "label": "Sex",
+      "type": "SINGLE_CHOICE",
+      "items": [
+        {
+          "value": "D",
+          "label": "Women",
+          "selected": true,
+          "productCount": 9119
+        },
+        {
+          "value": "M",
+          "label": "Men",
+          "selected": false,
+          "productCount": 10674
+        },
+        {
+          "value": "H",
+          "label": "Home",
+          "selected": false,
+          "productCount": 483
+        }
+      ]
+    },
+    {
+      "name": "color",
+      "label": "Color",
+      "type": "COLOR",
+      "items": [
+        {
+          "value": 27,
+          "label": "color 1",
+          "bg": "#f2d4cc",
+          "selected": false,
+          "productCount": 72
+        },
+        {
+          "value": 40,
+          "label": "color 2",
+          "bg": "#f8f4e9",
+          "selected": false,
+          "productCount": 511
+        },
+        {
+          "value": 23,
+          "label": "color 3",
+          "bg": "#ffffff",
+          "selected": false,
+          "productCount": 752
+        }
+      ]
+    },
+    {
+      "name": "price",
+      "label": "Price",
+      "type": "RANGE",
+      "items": {
+        "rangeMin": 279,
+        "rangeMax": 141899,
+        "selectedMin": null,
+        "selectedMax": null
+      },
+      "group": "price"
+    }
+  ],
+  "items": [
+    {
+      "url": "/p/product-1-12972",
+      "availableForBuy": true,
+      "id": 12972,
+      "price": 279,
+      "priceRegular": 559,
+      "priceMinimal": 559,
+      "priceIsDiscounted": true,
+      "name": "Brand 1 product 1",
+      "frontName": "Product 1",
+      "subtitle": "color 1 model TEST-0001",
+      "slug": "product-1",
+      "allSizes": [
+        {
+          "id": 362,
+          "name": "\u041e\u0434\u0438\u043d \u0440\u043e\u0437\u043c\u0456\u0440",
+          "variation": {
+            "id": 56373,
+            "ean": "0000000056373",
+            "availability": "LAST"
+          }
+        }
+      ],
+      "productImages": {
+        "mainImage": {
+          "name": "TEST-0001_F1.avif",
+          "version": "1685978435"
+        },
+        "btlImage": {
+          "name": "TEST-0001_F2.avif",
+          "version": "1685978435"
+        },
+        "galleryImages": [
+          {
+            "name": "TEST-0001_F3.avif",
+            "version": "1685978435"
+          }
+        ]
+      },
+      "categories": [
+        {
+          "id": 6,
+          "name": "Category 6"
+        },
+        {
+          "id": 66,
+          "name": "Category 66"
+        },
+        {
+          "id": 98,
+          "name": "Category 98"
+        },
+        {
+          "id": 99,
+          "name": "Category 99"
+        }
+      ],
+      "productBrand": {
+        "id": 19,
+        "name": "Brand 1",
+        "slug": "brand-1",
+        "published": true,
+        "logo": "logo/test",
+        "sponsored": null
+      },
+      "frontendUuid": "TEST-0001",
+      "pbbCode": "TEST-0001",
+      "color": {
+        "name": "color 1",
+        "colorPbbCode": "77X"
+      },
+      "source": "internal",
+      "badges": [
+        {
+          "id": 0,
+          "type": "percentage",
+          "text": "-50%",
+          "priority": 0,
+          "textColor": "#FFFFFF",
+          "backgroundColor": "#A93535",
+          "transparency": 0
+        }
+      ],
+      "badgesFront": [
+        {
+          "id": 0,
+          "type": "percentage",
+          "text": "-50%",
+          "priority": 0,
+          "textColor": "#FFFFFF",
+          "backgroundColor": "#A93535",
+          "transparency": 0
+        },
+        {
+          "id": 66,
+          "type": "temporary",
+          "text": "-5% \u0437 \u043a\u043e\u0434\u043e\u043c OFF*",
+          "priority": 6,
+          "textColor": "#ffffff",
+          "backgroundColor": "#2c2c2c",
+          "transparency": 20
+        }
+      ],
+      "percentageDiscountValue": null,
+      "percentageDiscountValueFromMinimal": null,
+      "onOfferFor30Days": true,
+      "hasSizeGroupProducts": false,
+      "isAvailableSoon": false,
+      "isPresale": false,
+      "isSponsored": false
+    },
+    {
+      "url": "/p/product-2-5906",
+      "availableForBuy": true,
+      "id": 5906,
+      "price": 299,
+      "priceRegular": 639,
+      "priceMinimal": 369,
+      "priceIsDiscounted": true,
+      "name": "Brand 2 product 2",
+      "frontName": "Product 2",
+      "subtitle": "color 2 model TEST-0002",
+      "slug": "product-2",
+      "allSizes": [
+        {
+          "id": 499,
+          "name": "35/37",
+          "variation": {
+            "id": 27368,
+            "ean": "0000000027368",
+            "availability": "IN_STOCK"
+          }
+        },
+        {
+          "id": 498,
+          "name": "38/42",
+          "variation": {
+            "id": 27369,
+            "ean": "0000000027369",
+            "availability": "OUT_OF_STOCK"
+          }
+        },
+        {
+          "id": 495,
+          "name": "43/46",
+          "variation": {
+            "id": 30448,
+            "ean": "0000000030448",
+            "availability": "OUT_OF_STOCK"
+          }
+        },
+        {
+          "id": 514,
+          "name": "47/50",
+          "variation": {
+            "id": 27367,
+            "ean": "0000000027367",
+            "availability": "OUT_OF_STOCK"
+          }
+        }
+      ],
+      "productImages": {
+        "mainImage": {
+          "name": "TEST-0002_F1.avif",
+          "version": "1687421176"
+        },
+        "btlImage": {
+          "name": "TEST-0002_F2.avif",
+          "version": "1687421176"
+        },
+        "galleryImages": [
+          {
+            "name": "TEST-0002_F3.avif",
+            "version": "1687421176"
+          }
+        ]
+      },
+      "categories": [
+        {
+          "id": 2,
+          "name": "Category 2"
+        },
+        {
+          "id": 3,
+          "name": "Category 3"
+        },
+        {
+          "id": 558,
+          "name": "Category 558"
+        },
+        {
+          "id": 559,
+          "name": "Category 559"
+        },
+        {
+          "id": 6,
+          "name": "Category 6"
+        },
+        {
+          "id": 7,
+          "name": "Category 7"
+        },
+        {
+          "id": 556,
+          "name": "Category 556"
+        },
+        {
+          "id": 557,
+          "name": "Category 557"
+        }
+      ],
+      "productBrand": {
+        "id": 177,
+        "name": "Brand 2",
+        "slug": "brand-2",
+        "published": true,
+        "logo": "logo/test",
+        "sponsored": null
+      },
+      "frontendUuid": "TEST-0002",
+      "pbbCode": "TEST-0002",
+      "color": {
+        "name": "color 2",
+        "colorPbbCode": "00X"
+      },
+      "source": "internal",
+      "badges": [
+        {
+          "id": 0,
+          "type": "percentage",
+          "text": "-53%",
+          "priority": 0,
+          "textColor": "#FFFFFF",
+          "backgroundColor": "#A93535",
+          "transparency": 0
+        }
+      ],
+      "badgesFront": [
+        {
+          "id": 0,
+          "type": "percentage",
+          "text": "-53%",
+          "priority": 0,
+          "textColor": "#FFFFFF",
+          "backgroundColor": "#A93535",
+          "transparency": 0
+        },
+        {
+          "id": 86,
+          "type": "temporary",
+          "text": "BLACK FRIDAY",
+          "priority": 7,
+          "textColor": "#ffffff",
+          "backgroundColor": "#2c2c2c",
+          "transparency": 20
+        }
+      ],
+      "percentageDiscountValue": null,
+      "percentageDiscountValueFromMinimal": null,
+      "onOfferFor30Days": true,
+      "hasSizeGroupProducts": false,
+      "isAvailableSoon": false,
+      "isPresale": false,
+      "isSponsored": false
+    },
+    {
+      "url": "/p/product-3-11447",
+      "availableForBuy": true,
+      "id": 11447,
+      "price": 399,
+      "priceRegular": 429,
+      "priceMinimal": 429,
+      "priceIsDiscounted": true,
+      "name": "Brand 3 product 3",
+      "frontName": "Product 3",
+      "subtitle": "color 3 model TEST-0003",
+      "slug": "product-3",
+      "allSizes": [
+        {
+          "id": 362,
+          "name": "\u041e\u0434\u0438\u043d \u0440\u043e\u0437\u043c\u0456\u0440",
+          "variation": {
+            "id": 50385,
+            "ean": "0000000050385",
+            "availability": "LAST"
+          }
+        }
+      ],
+      "productImages": {
+        "mainImage": {
+          "name": "TEST-0003_F1.avif",
+          "version": "1685967276"
+        },
+        "btlImage": {
+          "name": "TEST-0003_F2.avif",
+          "version": "1685967276"
+        },
+        "galleryImages": [
+          {
+            "name": "TEST-0003_F3.avif",
+            "version": "1685967277"
+          },
+          {
+            "name": "TEST-0003_F4.avif",
+            "version": "1685967277"
+          },
+          {
+            "name": "TEST-0003_F5.avif",
+            "version": "1685967277"
+          }
+        ]
+      },
+      "categories": [
+        {
+          "id": 2,
+          "name": "Category 2"
+        },
+        {
+          "id": 124,
+          "name": "Category 124"
+        },
+        {
+          "id": 137,
+          "name": "Category 137"
+        },
+        {
+          "id": 138,
+          "name": "Category 138"
+        },
+        {
+          "id": 6,
+          "name": "Category 6"
+        },
+        {
+          "id": 66,
+          "name": "Category 66"
+        },
+        {
+          "id": 67,
+          "name": "Category 67"
+        },
+        {
+          "id": 68,
+          "name": "Category 68"
+        }
+      ],
+      "productBrand": {
+        "id": 88,
+        "name": "Brand 3",
+        "slug": "brand-3",
+        "published": true,
+        "logo": "logo/test",
+        "sponsored": null
+      },
+      "frontendUuid": "TEST-0003",
+      "pbbCode": "TEST-0003",
+      "color": {
+        "name": "color 3",
+        "colorPbbCode": "11X"
+      },
+      "source": "internal",
+      "badges": [],
+      "badgesFront": [
+        {
+          "id": 86,
+          "type": "temporary",
+          "text": "BLACK FRIDAY",
+          "priority": 7,
+          "textColor": "#ffffff",
+          "backgroundColor": "#2c2c2c",
+          "transparency": 20
+        }
+      ],
+      "percentageDiscountValue": null,
+      "percentageDiscountValueFromMinimal": null,
+      "onOfferFor30Days": true,
+      "hasSizeGroupProducts": false,
+      "isAvailableSoon": false,
+      "isPresale": false,
+      "isSponsored": false
+    },
+    {
+      "url": "/p/product-4-11748",
+      "availableForBuy": true,
+      "id": 11748,
+      "price": 299,
+      "priceRegular": 639,
+      "priceMinimal": 369,
+      "priceIsDiscounted": true,
+      "name": "Brand 2 product 4",
+      "frontName": "Product 4",
+      "subtitle": "color 4 model TEST-0004",
+      "slug": "product-4",
+      "allSizes": [
+        {
+          "id": 499,
+          "name": "35/37",
+          "variation": {
+            "id": 51486,
+            "ean": "0000000051486",
+            "availability": "IN_STOCK"
+          }
+        },
+        {
+          "id": 498,
+          "name": "38/42",
+          "variation": {
+            "id": 51483,
+            "ean": "0000000051483",
+            "availability": "IN_STOCK"
+          }
+        },
+        {
+          "id": 495,
+          "name": "43/46",
+          "variation": {
+            "id": 51484,
+            "ean": "0000000051484",
+            "availability": "IN_STOCK"
+          }
+        },
+        {
+          "id": 514,
+          "name": "47/50",
+          "variation": {
+            "id": 51485,
+            "ean": "0000000051485",
+            "availability": "LAST"
+          }
+        }
+      ],
+      "productImages": {
+        "mainImage": {
+          "name": "TEST-0004_F1.avif",
+          "version": "1685978174"
+        },
+        "btlImage": {
+          "name": "TEST-0004_F2.avif",
+          "version": "1685978174"
+        },
+        "galleryImages": [
+          {
+            "name": "TEST-0004_F3.avif",
+            "version": "1685978174"
+          }
+        ]
+      },
+      "categories": [
+        {
+          "id": 2,
+          "name": "Category 2"
+        },
+        {
+          "id": 3,
+          "name": "Category 3"
+        },
+        {
+          "id": 558,
+          "name": "Category 558"
+        },
+        {
+          "id": 559,
+          "name": "Category 559"
+        },
+        {
+          "id": 6,
+          "name": "Category 6"
+        },
+        {
+          "id": 7,
+          "name": "Category 7"
+        },
+        {
+          "id": 556,
+          "name": "Category 556"
+        },
+        {
+          "id": 557,
+          "name": "Category 557"
+        }
+      ],
+      "productBrand": {
+        "id": 177,
+        "name": "Brand 2",
+        "slug": "brand-2",
+        "published": true,
+        "logo": "logo/test",
+        "sponsored": null
+      },
+      "frontendUuid": "TEST-0004",
+      "pbbCode": "TEST-0004",
+      "color": {
+        "name": "color 4",
+        "colorPbbCode": "00A"
+      },
+      "source": "internal",
+      "badges": [
+        {
+          "id": 0,
+          "type": "percentage",
+          "text": "-53%",
+          "priority": 0,
+          "textColor": "#FFFFFF",
+          "backgroundColor": "#A93535",
+          "transparency": 0
+        }
+      ],
+      "badgesFront": [
+        {
+          "id": 0,
+          "type": "percentage",
+          "text": "-53%",
+          "priority": 0,
+          "textColor": "#FFFFFF",
+          "backgroundColor": "#A93535",
+          "transparency": 0
+        },
+        {
+          "id": 86,
+          "type": "temporary",
+          "text": "BLACK FRIDAY",
+          "priority": 7,
+          "textColor": "#ffffff",
+          "backgroundColor": "#2c2c2c",
+          "transparency": 20
+        }
+      ],
+      "percentageDiscountValue": null,
+      "percentageDiscountValueFromMinimal": null,
+      "onOfferFor30Days": true,
+      "hasSizeGroupProducts": false,
+      "isAvailableSoon": false,
+      "isPresale": false,
+      "isSponsored": false
+    },
+    {
+      "url": "/p/product-5-11701",
+      "availableForBuy": true,
+      "id": 11701,
+      "price": 299,
+      "priceRegular": 639,
+      "priceMinimal": 369,
+      "priceIsDiscounted": true,
+      "name": "Brand 2 product 5",
+      "frontName": "Product 5",
+      "subtitle": "color 5 model TEST-0005",
+      "slug": "product-5",
+      "allSizes": [
+        {
+          "id": 499,
+          "name": "35/37",
+          "variation": {
+            "id": 51264,
+            "ean": "0000000051264",
+            "availability": "IN_STOCK"
+          }
+        },
+        {
+          "id": 498,
+          "name": "38/42",
+          "variation": {
+            "id": 51437,
+            "ean": "0000000051437",
+            "availability": "OUT_OF_STOCK"
+          }
+        },
+        {
+          "id": 495,
+          "name": "43/46",
+          "variation": {
+            "id": 51262,
+            "ean": "0000000051262",
+            "availability": "OUT_OF_STOCK"
+          }
+        }
+      ],
+      "productImages": {
+        "mainImage": {
+          "name": "TEST-0005_F1.avif",
+          "version": "1685978173"
+        },
+        "btlImage": {
+          "name": "TEST-0005_F2.avif",
+          "version": "1685978173"
+        },
+        "galleryImages": [
+          {
+            "name": "TEST-0005_F3.avif",
+            "version": "1685978173"
+          },
+          {
+            "name": "TEST-0005_F4.avif",
+            "version": "1685978173"
+          }
+        ]
+      },
+      "categories": [
+        {
+          "id": 2,
+          "name": "Category 2"
+        },
+        {
+          "id": 3,
+          "name": "Category 3"
+        },
+        {
+          "id": 558,
+          "name": "Category 558"
+        },
+        {
+          "id": 559,
+          "name": "Category 559"
+        },
+        {
+          "id": 6,
+          "name": "Category 6"
+        },
+        {
+          "id": 7,
+          "name": "Category 7"
+        },
+        {
+          "id": 556,
+          "name": "Category 556"
+        },
+        {
+          "id": 557,
+          "name": "Category 557"
+        }
+      ],
+      "productBrand": {
+        "id": 177,
+        "name": "Brand 2",
+        "slug": "brand-2",
+        "published": true,
+        "logo": "logo/test",
+        "sponsored": null
+      },
+      "frontendUuid": "TEST-0005",
+      "pbbCode": "TEST-0005",
+      "color": {
+        "name": "color 5",
+        "colorPbbCode": "90X"
+      },
+      "source": "internal",
+      "badges": [
+        {
+          "id": 0,
+          "type": "percentage",
+          "text": "-53%",
+          "priority": 0,
+          "textColor": "#FFFFFF",
+          "backgroundColor": "#A93535",
+          "transparency": 0
+        }
+      ],
+      "badgesFront": [
+        {
+          "id": 0,
+          "type": "percentage",
+          "text": "-53%",
+          "priority": 0,
+          "textColor": "#FFFFFF",
+          "backgroundColor": "#A93535",
+          "transparency": 0
+        },
+        {
+          "id": 86,
+          "type": "temporary",
+          "text": "BLACK FRIDAY",
+          "priority": 7,
+          "textColor": "#ffffff",
+          "backgroundColor": "#2c2c2c",
+          "transparency": 20
+        }
+      ],
+      "percentageDiscountValue": null,
+      "percentageDiscountValueFromMinimal": null,
+      "onOfferFor30Days": true,
+      "hasSizeGroupProducts": false,
+      "isAvailableSoon": false,
+      "isPresale": false,
+      "isSponsored": false
+    },
+    {
+      "url": "/p/product-6-5907",
+      "availableForBuy": true,
+      "id": 5907,
+      "price": 299,
+      "priceRegular": 639,
+      "priceMinimal": 369,
+      "priceIsDiscounted": true,
+      "name": "Brand 2 product 6",
+      "frontName": "Product 6",
+      "subtitle": "color 6 model TEST-0006",
+      "slug": "product-6",
+      "allSizes": [
+        {
+          "id": 498,
+          "name": "38/42",
+          "variation": {
+            "id": 27371,
+            "ean": "0000000027371",
+            "availability": "IN_STOCK"
+          }
+        },
+        {
+          "id": 495,
+          "name": "43/46",
+          "variation": {
+            "id": 27370,
+            "ean": "0000000027370",
+            "availability": "OUT_OF_STOCK"
+          }
+        }
+      ],
+      "productImages": {
+        "mainImage": {
+          "name": "TEST-0006_F1.avif",
+          "version": "1683296194"
+        },
+        "btlImage": {
+          "name": "TEST-0006_F2.avif",
+          "version": "1683296194"
+        },
+        "galleryImages": [
+          {
+            "name": "TEST-0006_F3.avif",
+            "version": "1683290681"
+          },
+          {
+            "name": "TEST-0006_F4.avif",
+            "version": "1683296195"
+          }
+        ]
+      },
+      "categories": [
+        {
+          "id": 2,
+          "name": "Category 2"
+        },
+        {
+          "id": 3,
+          "name": "Category 3"
+        },
+        {
+          "id": 558,
+          "name": "Category 558"
+        },
+        {
+          "id": 559,
+          "name": "Category 559"
+        },
+        {
+          "id": 6,
+          "name": "Category 6"
+        },
+        {
+          "id": 7,
+          "name": "Category 7"
+        },
+        {
+          "id": 556,
+          "name": "Category 556"
+        },
+        {
+          "id": 557,
+          "name": "Category 557"
+        }
+      ],
+      "productBrand": {
+        "id": 177,
+        "name": "Brand 2",
+        "slug": "brand-2",
+        "published": true,
+        "logo": "logo/test",
+        "sponsored": null
+      },
+      "frontendUuid": "TEST-0006",
+      "pbbCode": "TEST-0006",
+      "color": {
+        "name": "color 6",
+        "colorPbbCode": "90X"
+      },
+      "source": "internal",
+      "badges": [
+        {
+          "id": 0,
+          "type": "percentage",
+          "text": "-53%",
+          "priority": 0,
+          "textColor": "#FFFFFF",
+          "backgroundColor": "#A93535",
+          "transparency": 0
+        }
+      ],
+      "badgesFront": [
+        {
+          "id": 0,
+          "type": "percentage",
+          "text": "-53%",
+          "priority": 0,
+          "textColor": "#FFFFFF",
+          "backgroundColor": "#A93535",
+          "transparency": 0
+        },
+        {
+          "id": 86,
+          "type": "temporary",
+          "text": "BLACK FRIDAY",
+          "priority": 7,
+          "textColor": "#ffffff",
+          "backgroundColor": "#2c2c2c",
+          "transparency": 20
+        }
+      ],
+      "percentageDiscountValue": null,
+      "percentageDiscountValueFromMinimal": null,
+      "onOfferFor30Days": true,
+      "hasSizeGroupProducts": false,
+      "isAvailableSoon": false,
+      "isPresale": false,
+      "isSponsored": false
+    }
+  ]
+}
