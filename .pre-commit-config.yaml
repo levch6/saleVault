@@ -1,0 +1,70 @@
+# Git hooks, run by prek (https://prek.j178.dev); `just hooks` installs them (`just setup` too).
+# Quick checks of the staged files only: `just check` and CI still run the full suite.
+default_install_hook_types: [pre-commit, commit-msg]
+default_stages: [pre-commit]
+exclude: ^frontend/src/(routeTree\.gen\.ts|api/schema\.d\.ts)$
+
+repos:
+  - repo: builtin
+    hooks:
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: uv run --project backend --no-sync ruff check --fix --exit-non-zero-on-fix
+        language: system
+        types: [python]
+        require_serial: true
+      - id: ruff-format
+        name: ruff format
+        entry: uv run --project backend --no-sync ruff format
+        language: system
+        types: [python]
+        require_serial: true
+      - id: mypy
+        name: mypy
+        entry: bash -c 'cd backend && uv run --no-sync mypy'
+        language: system
+        types: [python]
+        pass_filenames: false
+      - id: biome
+        name: biome check
+        entry: bash -c 'cd frontend && ./node_modules/.bin/biome check --write --no-errors-on-unmatched --files-ignore-unknown=true "${@#frontend/}"' --
+        language: system
+        files: ^frontend/
+        require_serial: true
+      - id: tsc
+        name: tsc
+        entry: bash -c 'cd frontend && ./node_modules/.bin/tsc -b'
+        language: system
+        files: ^frontend/.*\.tsx?$
+        pass_filenames: false
+      - id: typos
+        name: typos
+        entry: uv run --project backend --no-sync typos --force-exclude
+        language: system
+        types: [text]
+      - id: zizmor
+        name: zizmor
+        entry: uv run --project backend --no-sync zizmor --offline
+        language: system
+        files: ^\.github/.*\.ya?ml$
+      - id: markdown-ascii
+        name: markdown is plain ascii
+        entry: '[^\x00-\x7F]'
+        language: pygrep
+        files: \.md$
+      - id: commit-msg
+        name: commit message format
+        entry: uv run --project backend --no-sync python backend/scripts/check_commit_msg.py
+        language: system
+        stages: [commit-msg]

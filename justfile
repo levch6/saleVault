@@ -13,11 +13,15 @@ openapi_ts := "--package openapi-typescript@7.13.0 --package typescript@5.9.3 op
 default:
     @just --list --unsorted
 
-# Install all dependencies: Python (uv), Playwright Chromium, Node (pnpm)
-setup:
+# Install all dependencies: Python (uv), Playwright Chromium, Node (pnpm), then the git hooks
+setup: && hooks
     cd {{ backend }} && uv sync
     cd {{ backend }} && uv run playwright install chromium
     cd {{ frontend }} && pnpm install
+
+# Install the git hooks: quick checks of staged files and the commit message format (prek)
+hooks:
+    uv run --project {{ backend }} prek install
 
 # Backend on :8000 with reload + Vite on :5173; Ctrl+C (or a crash of either) stops both
 dev:
@@ -91,10 +95,13 @@ db-upgrade:
 build:
     cd {{ frontend }} && pnpm build
 
-# Lint, format check and type check everything
+# Lint, format check and type check everything (plus spelling, CI security, ASCII Markdown)
 lint:
     cd {{ backend }} && uv run ruff check . && uv run ruff format --check . && uv run mypy
     cd {{ frontend }} && pnpm exec biome check . && pnpm exec tsc -b
+    uv run --project {{ backend }} typos
+    uv run --project {{ backend }} zizmor --offline --quiet .github
+    if git grep -n -P '[^\x00-\x7F]' -- '*.md'; then echo "Markdown must be plain ASCII" >&2; exit 1; fi
 
 # Auto-format and apply safe lint fixes
 fmt:
