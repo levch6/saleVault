@@ -25,6 +25,13 @@ class Settings(BaseSettings):
     def db_path(self) -> Path:
         return self.data_dir / "salevault.db"
 
+    def browser_profile_dir(self, site: str) -> Path:
+        return self.data_dir / "browser" / site
+
+    @property
+    def raw_dir(self) -> Path:
+        return self.data_dir / "raw"
+
 
 @lru_cache
 def get_settings() -> Settings:
