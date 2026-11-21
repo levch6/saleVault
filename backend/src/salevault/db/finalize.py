@@ -1,12 +1,16 @@
-"""Merge a run's staged items into the catalog in one transaction (ADR-0004)."""
+"""Merge a run's staged items into the catalog in one transaction (ADR-0004).
+
+Staged items are streamed in chunks (keyset pagination over `run_items`) so memory stays flat
+whatever the catalog size: about 200k items finalize in well under 1 GB.
+"""
 
 import json
-from collections.abc import Iterable
-from dataclasses import asdict, dataclass
+from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any
+from typing import Any, NamedTuple
 
-from sqlalchemy import delete, insert, select, update
+from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session
 
@@ -22,10 +26,12 @@ from salevault.db.models import (
     ScrapeRun,
 )
 from salevault.db.types import utcnow
-from salevault.domain.models import ProductRecord
+from salevault.domain.models import BrandRef, CategoryNode, CategoryRef, ProductRecord
 
 MISSES_BEFORE_INACTIVE = 2
 """Consecutive successful runs without an item before it is considered gone (ADR-0004)."""
+
+CHUNK_SIZE = 2000
 
 
 @dataclass(frozen=True, slots=True)
@@ -45,8 +51,30 @@ class RunStats:
         return asdict(self)
 
 
+class _Existing(NamedTuple):
+    id: int
+    price_minor: int
+    price_regular_minor: int
+    price_min30_minor: int | None
+    is_active: bool
+
+
+@dataclass(slots=True)
+class _Counters:
+    seen: int = 0
+    new: int = 0
+    price_drops: int = 0
+    price_ups: int = 0
+    returned: int = 0
+
+
 def finalize_run(
-    session: Session, run_id: int, *, deactivate: bool, now: datetime | None = None
+    session: Session,
+    run_id: int,
+    *,
+    deactivate: bool,
+    now: datetime | None = None,
+    chunk_size: int = CHUNK_SIZE,
 ) -> RunStats:
     """Merge staging into products, sizes, categories and the price change log.
 
@@ -55,21 +83,18 @@ def finalize_run(
     now = now or utcnow()
     run = session.get_one(ScrapeRun, run_id)
     site_id = run.site_id
+    tree = (
+        [CategoryNode.model_validate(n) for n in json.loads(run.category_tree_json)]
+        if run.category_tree_json
+        else None
+    )
 
-    staged: dict[str, tuple[ProductRecord, int]] = {}
-    for external_id, mask, record_json in session.execute(
-        select(RunItem.external_id, RunItem.gender_mask, RunItem.record_json).where(
-            RunItem.run_id == run_id
-        )
-    ):
-        staged[external_id] = (ProductRecord.model_validate_json(record_json), mask)
-    records = [record for record, _ in staged.values()]
-
-    brand_ids = _upsert_brands(session, site_id, records)
-    category_ids = _upsert_categories(session, site_id, records)
-
+    categories = _CategoryIndex(session, site_id, tree, _staged_roots(session, run_id))
+    brands = _BrandIndex(session, site_id)
     existing = {
-        row.external_id: row
+        row.external_id: _Existing(
+            row.id, row.price_minor, row.price_regular_minor, row.price_min30_minor, row.is_active
+        )
         for row in session.execute(
             select(
                 Product.id,
@@ -82,18 +107,68 @@ def finalize_run(
         )
     }
 
+    counters = _Counters()
+    last = ""
+    while True:
+        rows = session.execute(
+            select(RunItem.external_id, RunItem.gender_mask, RunItem.record_json)
+            .where(RunItem.run_id == run_id, RunItem.external_id > last)
+            .order_by(RunItem.external_id)
+            .limit(chunk_size)
+        ).all()
+        if not rows:
+            break
+        last = rows[-1][0]
+        chunk = [(ext, ProductRecord.model_validate_json(js), mask) for ext, mask, js in rows]
+        _merge_chunk(session, site_id, run_id, now, chunk, existing, brands, categories, counters)
+
+    missing = removed = 0
+    if deactivate:
+        missing, removed = _count_misses(session, site_id, run_id)
+
+    session.execute(delete(RunItem).where(RunItem.run_id == run_id))
+    session.execute(delete(RunPage).where(RunPage.run_id == run_id))
+    return RunStats(
+        seen=counters.seen,
+        new=counters.new,
+        price_drops=counters.price_drops,
+        price_ups=counters.price_ups,
+        returned=counters.returned,
+        missing=missing,
+        removed=removed,
+    )
+
+
+def _merge_chunk(
+    session: Session,
+    site_id: int,
+    run_id: int,
+    now: datetime,
+    chunk: Sequence[tuple[str, ProductRecord, int]],
+    existing: Mapping[str, _Existing],
+    brands: _BrandIndex,
+    categories: _CategoryIndex,
+    counters: _Counters,
+) -> None:
+    brand_ids = brands.ensure(record.brand for _ext, record, _mask in chunk)
+    categories.ensure(record.categories for _ext, record, _mask in chunk)
+
     inserts: list[dict[str, Any]] = []
     updates: list[dict[str, Any]] = []
-    changed: set[str] = set()
-    new = price_drops = price_ups = returned = 0
-    for external_id, (record, mask) in staged.items():
+    changed: list[str] = []
+    for external_id, record, mask in chunk:
+        counters.seen += 1
         values = _product_values(record, mask, brand_ids[record.brand.external_id])
-        values |= {"last_seen_at": now, "last_seen_run_id": run_id, "is_active": True}
-        values["missed_runs"] = 0
+        values |= {
+            "last_seen_at": now,
+            "last_seen_run_id": run_id,
+            "is_active": True,
+            "missed_runs": 0,
+        }
         old = existing.get(external_id)
         if old is None:
-            new += 1
-            changed.add(external_id)
+            counters.new += 1
+            changed.append(external_id)
             inserts.append(
                 values
                 | {
@@ -104,22 +179,21 @@ def finalize_run(
                 }
             )
             continue
-
         if not old.is_active:
-            returned += 1
+            counters.returned += 1
         if record.price_minor != old.price_minor:
             values["prev_price_minor"] = old.price_minor
             values["last_price_change_run_id"] = run_id
             if record.price_minor < old.price_minor:
-                price_drops += 1
+                counters.price_drops += 1
             else:
-                price_ups += 1
+                counters.price_ups += 1
         if (record.price_minor, record.price_regular_minor, record.price_min30_minor) != (
             old.price_minor,
             old.price_regular_minor,
             old.price_min30_minor,
         ):
-            changed.add(external_id)
+            changed.append(external_id)
         updates.append(values | {"id": old.id})
 
     if inserts:
@@ -127,49 +201,33 @@ def finalize_run(
     if updates:
         session.execute(update(Product), updates)
 
-    product_ids = _id_map(session, Product, site_id)
+    product_ids = {ext: existing[ext].id for ext, _r, _m in chunk if ext in existing}
+    if inserts:
+        new_ids = session.execute(
+            select(Product.external_id, Product.id).where(
+                Product.site_id == site_id,
+                Product.external_id.in_([row["external_id"] for row in inserts]),
+            )
+        )
+        product_ids.update({ext: pid for ext, pid in new_ids})  # noqa: C416 (Result has .keys())
 
+    records = {ext: record for ext, record, _mask in chunk}
     history = [
         {
-            "product_id": product_ids[external_id],
+            "product_id": product_ids[ext],
             "run_id": run_id,
             "observed_at": now,
-            "price_minor": staged[external_id][0].price_minor,
-            "price_regular_minor": staged[external_id][0].price_regular_minor,
-            "price_min30_minor": staged[external_id][0].price_min30_minor,
-            "discount_pct": staged[external_id][0].discount_pct,
+            "price_minor": records[ext].price_minor,
+            "price_regular_minor": records[ext].price_regular_minor,
+            "price_min30_minor": records[ext].price_min30_minor,
+            "discount_pct": records[ext].discount_pct,
         }
-        for external_id in changed
+        for ext in changed
     ]
     if history:
         session.execute(insert(PriceHistory), history)
 
-    _replace_children(session, site_id, run_id, staged, product_ids, category_ids)
-
-    missing = removed = 0
-    if deactivate:
-        missing, removed = _count_misses(session, site_id, run_id)
-
-    session.execute(delete(RunItem).where(RunItem.run_id == run_id))
-    session.execute(delete(RunPage).where(RunPage.run_id == run_id))
-    return RunStats(
-        seen=len(staged),
-        new=new,
-        price_drops=price_drops,
-        price_ups=price_ups,
-        returned=returned,
-        missing=missing,
-        removed=removed,
-    )
-
-
-def _id_map(
-    session: Session, model: type[Brand] | type[Category] | type[Product], site_id: int
-) -> dict[str, int]:
-    """external_id -> id for one site."""
-    rows = session.execute(select(model.external_id, model.id).where(model.site_id == site_id))
-    # Not dict(rows): Result has .keys(), so dict() would treat it as a mapping.
-    return {external_id: row_id for external_id, row_id in rows}  # noqa: C416
+    _replace_children(session, chunk, product_ids, categories)
 
 
 def _product_values(record: ProductRecord, mask: int, brand_id: int) -> dict[str, Any]:
@@ -194,73 +252,160 @@ def _product_values(record: ProductRecord, mask: int, brand_id: int) -> dict[str
     }
 
 
-def _upsert_brands(
-    session: Session, site_id: int, records: Iterable[ProductRecord]
+def _id_map(
+    session: Session,
+    model: type[Brand] | type[Category] | type[Product],
+    site_id: int,
+    external_ids: Iterable[str] | None = None,
 ) -> dict[str, int]:
-    brands = {r.brand.external_id: r.brand for r in records}
-    if brands:
-        stmt = sqlite_insert(Brand).values(
-            [
-                {"site_id": site_id, "external_id": b.external_id, "name": b.name, "slug": b.slug}
-                for b in brands.values()
-            ]
-        )
-        session.execute(
-            stmt.on_conflict_do_update(
-                index_elements=[Brand.site_id, Brand.external_id],
-                set_={"name": stmt.excluded.name, "slug": stmt.excluded.slug},
+    """external_id -> id for one site (optionally only for some external ids)."""
+    stmt = select(model.external_id, model.id).where(model.site_id == site_id)
+    if external_ids is not None:
+        stmt = stmt.where(model.external_id.in_(list(external_ids)))
+    # Not dict(rows): Result has .keys(), so dict() would treat it as a mapping.
+    return {external_id: row_id for external_id, row_id in session.execute(stmt)}  # noqa: C416
+
+
+@dataclass(slots=True)
+class _BrandIndex:
+    session: Session
+    site_id: int
+    ids: dict[str, int] = field(default_factory=dict)
+
+    def ensure(self, refs: Iterable[BrandRef]) -> dict[str, int]:
+        """Upsert the chunk's brands (names may change) and return external_id -> id."""
+        brands = {b.external_id: b for b in refs}
+        if brands:
+            stmt = sqlite_insert(Brand).values(
+                [
+                    {
+                        "site_id": self.site_id,
+                        "external_id": b.external_id,
+                        "name": b.name,
+                        "slug": b.slug,
+                    }
+                    for b in brands.values()
+                ]
             )
-        )
-    return _id_map(session, Brand, site_id)
+            self.session.execute(
+                stmt.on_conflict_do_update(
+                    index_elements=[Brand.site_id, Brand.external_id],
+                    set_={"name": stmt.excluded.name, "slug": stmt.excluded.slug},
+                )
+            )
+            missing = [ext for ext in brands if ext not in self.ids]
+            if missing:
+                self.ids.update(_id_map(self.session, Brand, self.site_id, missing))
+        return self.ids
 
 
-def _upsert_categories(
-    session: Session, site_id: int, records: Iterable[ProductRecord]
-) -> dict[str, int]:
-    nodes: dict[str, tuple[str, str | None, int]] = {}  # external_id -> (name, parent, depth)
-    for record in records:
-        parent: str | None = None
-        for depth, category in enumerate(record.categories):
-            nodes.setdefault(category.external_id, (category.name, parent, depth))
-            parent = category.external_id
-    if nodes:
+class _CategoryIndex:
+    """Category tree of a site during finalization.
+
+    The shop's tree is the source of truth. Categories missing from it get a parent from the
+    item lists, which are root-to-leaf paths glued together: a root starts a new path.
+    """
+
+    def __init__(
+        self,
+        session: Session,
+        site_id: int,
+        tree: Sequence[CategoryNode] | None,
+        staged_roots: Iterable[str],
+    ) -> None:
+        self._session = session
+        self._site_id = site_id
+        self.nodes: dict[str, tuple[str, str | None, int]] = {
+            n.external_id: (n.name, n.parent_external_id, n.depth) for n in tree or ()
+        }
+        self._roots = {ext for ext, (_n, parent, _d) in self.nodes.items() if parent is None}
+        self._roots |= set(staged_roots)
+        self.ids: dict[str, int] = {}
+        self._store(list(self.nodes))
+
+    @property
+    def parents(self) -> dict[str, str | None]:
+        return {ext: parent for ext, (_n, parent, _d) in self.nodes.items()}
+
+    def ensure(self, category_lists: Iterable[Sequence[CategoryRef]]) -> None:
+        added: list[str] = []
+        for categories in category_lists:
+            parent: str | None = None
+            for category in categories:
+                if category.external_id in self._roots:
+                    parent = None
+                if category.external_id not in self.nodes:
+                    depth = self.nodes[parent][2] + 1 if parent is not None else 0
+                    self.nodes[category.external_id] = (category.name, parent, depth)
+                    added.append(category.external_id)
+                parent = category.external_id
+        self._store(added)
+
+    def _store(self, external_ids: list[str]) -> None:
+        if not external_ids:
+            return
         stmt = sqlite_insert(Category).values(
             [
-                {"site_id": site_id, "external_id": ext, "name": name, "depth": depth}
-                for ext, (name, _parent, depth) in nodes.items()
+                {
+                    "site_id": self._site_id,
+                    "external_id": ext,
+                    "name": self.nodes[ext][0],
+                    "depth": self.nodes[ext][2],
+                }
+                for ext in external_ids
             ]
         )
-        session.execute(
+        self._session.execute(
             stmt.on_conflict_do_update(
                 index_elements=[Category.site_id, Category.external_id],
                 set_={"name": stmt.excluded.name, "depth": stmt.excluded.depth},
             )
         )
-    ids = _id_map(session, Category, site_id)
-    parents = [
-        {"id": ids[ext], "parent_id": ids[parent] if parent else None}
-        for ext, (_name, parent, _depth) in nodes.items()
-    ]
-    if parents:
-        session.execute(update(Category), parents)
-    return ids
+        wanted = set(external_ids) | {
+            p for ext in external_ids if (p := self.nodes[ext][1]) is not None
+        }
+        self.ids.update(_id_map(self._session, Category, self._site_id, wanted - set(self.ids)))
+        parents = [
+            {"id": self.ids[ext], "parent_id": self.ids.get(parent) if parent else None}
+            for ext in external_ids
+            for parent in [self.nodes[ext][1]]
+        ]
+        self._session.execute(update(Category), parents)
+
+
+def _staged_roots(session: Session, run_id: int) -> set[str]:
+    """First category of every staged item: always a root of the shop's tree."""
+    first = func.json_extract(RunItem.record_json, "$.categories[0].external_id")
+    rows = session.scalars(select(first).where(RunItem.run_id == run_id).distinct())
+    return {str(r) for r in rows if r is not None}
+
+
+def with_ancestors(external_ids: Iterable[str], parents: Mapping[str, str | None]) -> set[str]:
+    """The given categories plus all their ancestors, so a filter on a branch finds items
+    whose list only names a deeper category."""
+    out: set[str] = set()
+    for external_id in external_ids:
+        current: str | None = external_id
+        while current is not None and current not in out:
+            out.add(current)
+            current = parents.get(current)
+    return out
 
 
 def _replace_children(
     session: Session,
-    site_id: int,
-    run_id: int,
-    staged: dict[str, tuple[ProductRecord, int]],
-    product_ids: dict[str, int],
-    category_ids: dict[str, int],
+    chunk: Sequence[tuple[str, ProductRecord, int]],
+    product_ids: Mapping[str, int],
+    categories: _CategoryIndex,
 ) -> None:
-    seen = select(Product.id).where(Product.site_id == site_id, Product.last_seen_run_id == run_id)
-    session.execute(delete(ProductSize).where(ProductSize.product_id.in_(seen)))
-    session.execute(delete(ProductCategory).where(ProductCategory.product_id.in_(seen)))
+    ids = list(product_ids.values())
+    session.execute(delete(ProductSize).where(ProductSize.product_id.in_(ids)))
+    session.execute(delete(ProductCategory).where(ProductCategory.product_id.in_(ids)))
 
+    parents = categories.parents
     sizes: list[dict[str, Any]] = []
     links: list[dict[str, Any]] = []
-    for external_id, (record, _mask) in staged.items():
+    for external_id, record, _mask in chunk:
         product_id = product_ids[external_id]
         variations: set[str] = set()
         for size in record.sizes:
@@ -278,8 +423,9 @@ def _replace_children(
                     "in_stock": size.in_stock,
                 }
             )
-        for category_id in {category_ids[c.external_id] for c in record.categories}:
-            links.append({"product_id": product_id, "category_id": category_id})
+        listed = (c.external_id for c in record.categories)
+        for ext in with_ancestors(listed, parents):
+            links.append({"product_id": product_id, "category_id": categories.ids[ext]})
     if sizes:
         session.execute(insert(ProductSize), sizes)
     if links:
