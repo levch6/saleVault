@@ -87,15 +87,30 @@ def runs_live_tests(words: list[str]) -> bool:
     return any(LIVE_MARKER.search(m) for m in markers) or any("tests/live" in w for w in words)
 
 
+SEPARATORS = {";", "&&", "||", "|", "&", "|&", "(", ")"}
+
+
+def simple_commands(words: list[str]) -> list[list[str]]:
+    """Split at `;`, `&&`, `||` and pipes, so flags of one command never count for the next."""
+    commands: list[list[str]] = [[]]
+    for word in words:
+        if word in SEPARATORS:
+            commands.append([])
+        else:
+            commands[-1].append(word)
+    return [c for c in commands if c]
+
+
 def check_bash(command: str) -> Verdict:
     words = words_of(command)
     if any(w.startswith(HOOK_SKIPPING_ENV) for w in words) and "git" in words:
         return "deny", "Do not skip git hooks through the environment: fix what they report."
-    for i, word in enumerate(words):
-        if word == "git":
-            verdict = check_git(words[i + 1 :])
-            if verdict:
-                return verdict
+    for simple in simple_commands(words):
+        for i, word in enumerate(simple):
+            if word == "git":
+                verdict = check_git(simple[i + 1 :])
+                if verdict:
+                    return verdict
     if runs_live_tests(words):
         return "ask", "Live tests send requests to the real shops."
     return None
