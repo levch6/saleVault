@@ -4,7 +4,7 @@ A local tool that collects sale items from fashion shops and shows them **sorted
 
 Supported shops: PRM.com (UA), with Answear.ua planned.
 
-> **Status:** early development. The PRM scraper fills a local SQLite catalog with price history; the HTTP API and the catalog UI are next.
+> **Status:** early development. The PRM scraper fills a local SQLite catalog with price history, and the HTTP API serves it (filters, facets, favorites, runs). The catalog UI is next.
 
 ## Requirements
 

@@ -39,6 +39,11 @@ Personal, local-only tool: scrapes the sale sections of fashion shops (PRM.com, 
 - pnpm 12 asks for approval of agent "skills" shipped by `@tanstack/react-router` and `@tanstack/router-plugin`. They are deliberately left unapproved; don't approve them without asking the user.
 - shadcn's `cn` helper comes from the `cn` package (shadcn-ui/cn) via `@/lib/utils`.
 - PRM does not serve Playwright's headless shell (HTTP 403 at warm-up), so its site config runs a headed Chromium window through WSLg.
+- Performance (see `backend/scripts/bench_api.py`, `make_synthetic_db.py`): every sort and cheap facet has an index led by `is_active`; product pages use a deferred join (page of ids first, then full rows); `upgrade()` and finished runs run `ANALYZE` (without statistics for new indexes SQLite picks 20x slower plans). Keep these when touching queries, and re-run the bench on a 200k synthetic DB.
+- Facets are cached in-process, keyed by DB URL + query + data version (last finished run, favorites, my sizes). Anything else that changes facet results must be added to `data_version`.
+- Categories: the shop's tree (`categoryTree`, root request only) is the source of truth; item `categories` lists are several glued paths, sometimes without a root (ADR-0005). Products are linked to ancestors too.
+- API gender values are words (`men`, `women`, `home`, `kids`); shop codes (`M`, `D`, `H`) stay inside the adapter.
+- UI-triggered runs are separate processes (`api/launcher.py`): `python -m salevault scrape <site> --trigger ui`, logs in `data/logs/`.
 - SQLAlchemy 2.1: never pass a `Result` to `dict()` (it has `.keys()`, so dict treats it as a mapping); use a comprehension. `Result.tuples()` is deprecated.
 - The DB lives in `data/salevault.db` (SQLite, WAL). The engine disables pysqlite's implicit transactions and emits `BEGIN` itself (`db/engine.py`); keep it that way.
 - Test fixtures must be anonymized: build them with `backend/scripts/make_fixture.py` from `data/raw/...` archives, never copy raw shop responses into the repo.
@@ -53,7 +58,7 @@ Personal, local-only tool: scrapes the sale sections of fashion shops (PRM.com, 
 
 ## Engineering rules
 
-- **Scraping etiquette (hard rule):** use a real browser (Playwright Chromium) and call the site's own JSON API with `fetch` from the page. Keep the polite default rate from the site config. No stealth plugins, CAPTCHA solving or proxy rotation. On repeated 403/429, stop the run and report. Respect robots.txt.
+- **Scraping etiquette (hard rule):** call the site's own JSON API at the polite default rate from the site config, through a stock Playwright Chromium or, as an optional transport planned for phase 5, `curl_cffi` with its Chrome profile. On repeated 403/429, stop the run and report. Respect robots.txt. Off-limits: stealth plugins, CAPTCHA solving, proxy rotation.
 - Money is stored as integer minor units (`*_minor`); the API returns whole UAH.
 - Site-specific logic lives only in adapters (`scraper/sites/`). The core, DB, API and UI stay site-agnostic.
 - Validate external data with Pydantic. On a schema mismatch, fail loudly and save the raw response.
