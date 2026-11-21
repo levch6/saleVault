@@ -150,7 +150,10 @@ export function RefreshMenu({
   const start = useStartRun()
   const run = (code: string) =>
     start.mutate(code, {
-      onSuccess: () => toast.info('Scraping started. A browser window may appear for a moment.'),
+      onSuccess: (result) => {
+        toast.info('Scraping started. A browser window may appear for a moment.')
+        for (const reason of result.skipped ?? []) toast.warning(reason)
+      },
       onError: (e) => toast.error(e.message),
     })
   return (

@@ -1,5 +1,10 @@
 import type { QueryClient } from '@tanstack/react-query'
-import { createRootRouteWithContext, Link, Outlet } from '@tanstack/react-router'
+import {
+  createRootRouteWithContext,
+  type ErrorComponentProps,
+  Link,
+  Outlet,
+} from '@tanstack/react-router'
 import { HealthStatus } from '@/components/health-status'
 import { Logo } from '@/components/logo'
 import { RunControls } from '@/components/runs/run-controls'
@@ -13,6 +18,7 @@ export interface RouterContext {
 export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootLayout,
   notFoundComponent: NotFound,
+  errorComponent: RenderError,
 })
 
 const NAV = [
@@ -70,6 +76,25 @@ function NotFound() {
       <Link to="/" className="text-primary underline-offset-4 hover:underline">
         Back to the catalog
       </Link>
+    </section>
+  )
+}
+
+/** A render error shows this instead of a blank page; the header stays usable. */
+function RenderError({ error, reset }: ErrorComponentProps) {
+  return (
+    <section role="alert" className="flex flex-col items-center gap-3 py-24 text-center">
+      <h1 className="text-2xl font-semibold">Something went wrong</h1>
+      <p className="max-w-md text-sm text-muted-foreground">
+        {error instanceof Error ? error.message : String(error)}
+      </p>
+      <button
+        type="button"
+        onClick={reset}
+        className="text-primary underline-offset-4 hover:underline"
+      >
+        Try again
+      </button>
     </section>
   )
 }

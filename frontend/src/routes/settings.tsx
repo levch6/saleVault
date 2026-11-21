@@ -54,7 +54,12 @@ function SettingsPage() {
             </p>
           </div>
           {mine.size ? (
-            <Button variant="ghost" size="sm" className="ml-auto" onClick={() => update.mutate([])}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="ml-auto"
+              onClick={() => update.mutate([], { onError: (e) => toast.error(e.message) })}
+            >
               Clear all
             </Button>
           ) : null}

@@ -1,5 +1,6 @@
 import { ExternalLinkIcon, StarIcon, TrendingDownIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { toast } from 'sonner'
 import { useSiteLabel, useToggleFavorite } from '@/api/queries'
 import type { ProductCard as Card } from '@/api/types'
 import { discountTone, formatPrice } from '@/lib/format'
@@ -37,7 +38,12 @@ export function FavoriteButton({
       type="button"
       aria-label={active ? 'Remove from favorites' : 'Add to favorites'}
       aria-pressed={active}
-      onClick={() => toggle.mutate({ id, favorite: !active })}
+      onClick={() =>
+        toggle.mutate(
+          { id, favorite: !active },
+          { onError: (e) => toast.error(`Could not update favorites: ${e.message}`) },
+        )
+      }
       className={cn(
         'grid size-8 place-items-center rounded-full bg-background/80 backdrop-blur transition hover:scale-110',
         className,

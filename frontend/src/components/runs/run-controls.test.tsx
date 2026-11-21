@@ -77,6 +77,22 @@ describe('RunControls', () => {
     )
   })
 
+  it('says which shops were skipped when starting all of them', async () => {
+    const warned = vi.spyOn(toast, 'warning')
+    mockApi({
+      'GET /api/sites': [prm, answear],
+      'POST /api/runs': { run_ids: [21], skipped: ['Run #3 of prm is already running'] },
+    })
+    const client = newClient()
+    client.setQueryData(['sites'], [prm, answear])
+    const { user } = renderWithClient(<RunControls />, client)
+
+    await user.click(screen.getByRole('button', { name: 'Refresh' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'All shops' }))
+
+    await waitFor(() => expect(warned).toHaveBeenCalledWith('Run #3 of prm is already running'))
+  })
+
   it('announces a run that finished', async () => {
     const success = vi.spyOn(toast, 'success')
     const running = site({ latest: run({ id: 5, status: 'running', finished_at: null }) })

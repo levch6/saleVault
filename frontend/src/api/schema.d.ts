@@ -544,6 +544,11 @@ export interface components {
             in_stock: boolean;
             /** Is Mine */
             is_mine: boolean;
+            /**
+             * Variation Id
+             * @description Unique per product; labels may repeat
+             */
+            variation_id: string;
             /** Availability */
             availability: string;
         };

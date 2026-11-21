@@ -13,15 +13,23 @@ const config = {
   regular: { label: 'Regular', color: 'var(--chart-4)' },
 } satisfies ChartConfig
 
-/** Step chart of the price change log; the last point is extended to "now". */
-export function PriceChart({ history }: { history: readonly HistoryPoint[] }) {
+/** Step chart of the price change log; the last point is extended to "now", or to `until`
+ * (when the item was last seen) for items that left the sale. */
+export function PriceChart({
+  history,
+  until,
+}: {
+  history: readonly HistoryPoint[]
+  until?: string
+}) {
   const points = history.map((h) => ({
     t: Date.parse(h.observed_at),
     price: h.price,
     regular: h.price_regular,
   }))
   const last = points.at(-1)
-  if (last) points.push({ ...last, t: Math.max(Date.now(), last.t + 1) })
+  const end = until ? Date.parse(until) : Date.now()
+  if (last) points.push({ ...last, t: Math.max(end, last.t + 1) })
 
   return (
     <ChartContainer config={config} className="aspect-auto h-48 w-full">

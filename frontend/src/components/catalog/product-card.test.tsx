@@ -1,4 +1,5 @@
 import { screen, waitFor, within } from '@testing-library/react'
+import { toast } from 'sonner'
 import { describe, expect, it, vi } from 'vitest'
 import type { ProductCard as Card, SiteOut } from '@/api/types'
 import { formatPrice } from '@/lib/format'
@@ -113,5 +114,19 @@ describe('ProductCard', () => {
         expect.objectContaining({ method: 'DELETE', path: '/api/favorites/7' }),
       ),
     )
+  })
+
+  it('tells the user when the favorite could not be saved', async () => {
+    const failed = vi.spyOn(toast, 'error')
+    mockApi({
+      'GET /api/sites': [site()],
+      'PUT /api/favorites/7': () =>
+        Response.json({ detail: 'busy', code: 'database_busy' }, { status: 503 }),
+    })
+    const { user } = renderWithClient(<ProductCard product={product()} onOpen={vi.fn()} />)
+
+    await user.click(screen.getByRole('button', { name: 'Add to favorites' }))
+
+    await waitFor(() => expect(failed).toHaveBeenCalledWith(expect.stringContaining('busy')))
   })
 })

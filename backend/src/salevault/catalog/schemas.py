@@ -128,6 +128,7 @@ class CategoryOut(_Out):
 
 
 class SizeDetail(SizeOut):
+    variation_id: str = Field(description="Unique per product; labels may repeat")
     availability: str
 
 

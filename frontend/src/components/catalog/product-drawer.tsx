@@ -55,11 +55,17 @@ function DrawerBody({ productId }: { productId: number }) {
       </div>
     )
   }
-  return <Detail product={data} />
+  // A new item gets a fresh Detail, so the selected image does not carry over.
+  return <Detail key={data.id} product={data} />
 }
 
 function Detail({ product }: { product: ProductDetail }) {
-  const images = [product.image, ...product.gallery].filter((i) => i !== null)
+  // The main image can repeat in the gallery; unique URLs also make stable React keys.
+  const images = [
+    ...new Map(
+      [product.image, ...product.gallery].filter((i) => i !== null).map((i) => [i.thumb, i]),
+    ).values(),
+  ]
   const [active, setActive] = useState(0)
   const current = images[active] ?? images[0]
   const sizes = [...product.size_details].sort((a, b) => compareSizes(a.label, b.label))
@@ -147,7 +153,7 @@ function Detail({ product }: { product: ProductDetail }) {
           <ul className="flex flex-wrap gap-1.5">
             {sizes.map((s) => (
               <li
-                key={s.label}
+                key={s.variation_id}
                 title={
                   s.availability === 'LAST'
                     ? 'Last items'
@@ -169,7 +175,10 @@ function Detail({ product }: { product: ProductDetail }) {
         <section className="space-y-2">
           <h3 className="text-sm font-semibold">Price history</h3>
           {product.price_history.length > 1 ? (
-            <PriceChart history={product.price_history} />
+            <PriceChart
+              history={product.price_history}
+              until={product.is_active ? undefined : product.last_seen_at}
+            />
           ) : (
             <p className="text-sm text-muted-foreground">
               No price changes since {formatDate(product.first_seen_at)}.

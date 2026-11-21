@@ -319,9 +319,20 @@ def product_detail(session: Session, product_id: int) -> ProductDetail | None:
     card = _cards(session, [(product, brand_name, site_code, currency)], runs, mine)[0]
 
     size_details = [
-        SizeDetail(label=label, in_stock=in_stock, is_mine=label in mine, availability=avail)
-        for label, in_stock, avail in session.execute(
-            select(ProductSize.label, ProductSize.in_stock, ProductSize.availability)
+        SizeDetail(
+            variation_id=variation,
+            label=label,
+            in_stock=in_stock,
+            is_mine=label in mine,
+            availability=avail,
+        )
+        for variation, label, in_stock, avail in session.execute(
+            select(
+                ProductSize.variation_id,
+                ProductSize.label,
+                ProductSize.in_stock,
+                ProductSize.availability,
+            )
             .where(ProductSize.product_id == product_id)
             .order_by(literal_column("rowid"))
         )
