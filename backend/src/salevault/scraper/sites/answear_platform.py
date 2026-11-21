@@ -5,7 +5,7 @@ import math
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from pydantic.alias_generators import to_camel
@@ -34,6 +34,9 @@ from salevault.scraper.errors import BlockedError, ContractError, ScrapeError, T
 log = logging.getLogger(__name__)
 
 
+TransportMode = Literal["auto", "browser", "http"]
+
+
 @dataclass(frozen=True, slots=True)
 class AnswearPlatformConfig:
     code: str
@@ -48,6 +51,8 @@ class AnswearPlatformConfig:
     concurrency: int = 1
     headless: bool = True
     """Some shops do not serve the headless shell; those use a visible window (WSLg)."""
+    transport: TransportMode = "auto"
+    """`auto`: curl_cffi first, the browser if refused; `browser`; `http` (see transports.py)."""
     sort: str = ""
     """API sort used for pagination: "" (popularity), "date_desc", "price_asc", "price_desc".
 
@@ -60,6 +65,8 @@ class AnswearPlatformConfig:
             "M": Gender.MEN,
             "D": Gender.WOMEN,
             "H": Gender.HOME,
+            "G": Gender.KIDS,  # girls (Answear.ua)
+            "B": Gender.KIDS,  # boys (Answear.ua)
         }
     )
     in_stock_values: frozenset[str] = frozenset({"IN_STOCK", "LAST"})

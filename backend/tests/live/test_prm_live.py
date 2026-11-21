@@ -23,3 +23,15 @@ async def test_prm_first_page_matches_the_schema(tmp_path: Path) -> None:
     assert {f.code for f in page.facets.sex} >= {"M", "D"}
     assert page.facets.price_range is not None
     assert all(item.price_minor < item.price_regular_minor for item in page.items)
+
+
+async def test_prm_over_http_transport() -> None:
+    from salevault.scraper.http_transport import HttpSession
+
+    async with HttpSession(PRM.origin) as http:
+        adapter = create_adapter(PRM.code, http)
+        await adapter.warm_up()
+        page = await adapter.fetch_page(Segment(), 1)
+
+    assert page.count > 1000
+    assert page.category_tree, "the root request carries the category tree"

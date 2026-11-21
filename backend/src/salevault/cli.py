@@ -7,7 +7,7 @@ import signal
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, cast
 
 import typer
 import uvicorn
@@ -23,7 +23,6 @@ from salevault.db.engine import create_db_engine, make_session_factory, sqlite_u
 from salevault.db.migrate import upgrade
 from salevault.db.runs import NothingToResumeError, RunAlreadyRunningError, RunRepository
 from salevault.scraper.base import SiteAdapter
-from salevault.scraper.browser import BrowserSession
 from salevault.scraper.errors import ScrapeError
 from salevault.scraper.raw_archive import RawArchive
 from salevault.scraper.report import (
@@ -35,7 +34,9 @@ from salevault.scraper.report import (
 )
 from salevault.scraper.runner import RunOptions, ScrapeResult, ScrapeRunner
 from salevault.scraper.service import RunOutcome, execute_run
-from salevault.scraper.sites.registry import SITES, create_adapter, get_config
+from salevault.scraper.sites.answear_platform import TransportMode
+from salevault.scraper.sites.registry import SITES, get_config
+from salevault.scraper.transports import open_adapter
 
 app = typer.Typer(help="saleVault: sale items sorted by discount.", no_args_is_help=True)
 db_app = typer.Typer(help="Database maintenance.", no_args_is_help=True)
@@ -77,6 +78,13 @@ def scrape(
             show_default=False,
         ),
     ] = None,
+    transport: Annotated[
+        str | None,
+        typer.Option(
+            help="auto (HTTP, browser if refused), browser or http. Default: per site config.",
+            show_default=False,
+        ),
+    ] = None,
     max_pages: Annotated[
         int | None, typer.Option(min=1, help="Debug: at most N pages per segment.")
     ] = None,
@@ -99,27 +107,38 @@ def scrape(
             raise typer.BadParameter(str(exc.args[0]), param_hint="SITE") from None
     if resume and dry_run:
         raise typer.BadParameter("--resume cannot be combined with --dry-run")
+    if transport not in (None, "auto", "browser", "http"):
+        raise typer.BadParameter("must be auto, browser or http", param_hint="--transport")
 
     _setup_logging(verbose)
     failed = False
     for code in codes:
         config = get_config(code)
         headless = config.headless if headed is None else not headed
+        mode = cast(TransportMode, transport or config.transport)
         try:
             if dry_run:
                 result = asyncio.run(
-                    _dry_run(code, headless=headless, max_pages=max_pages, save_raw=save_raw)
+                    _dry_run(
+                        code,
+                        transport=mode,
+                        headless=headless,
+                        max_pages=max_pages,
+                        save_raw=save_raw,
+                    )
                 )
                 render_summary(console, result, top=top)
             else:
                 outcome = asyncio.run(
                     _persisted_run(
                         code,
+                        transport=mode,
                         headless=headless,
                         max_pages=max_pages,
                         save_raw=save_raw,
                         resume=resume,
                         trigger=trigger,
+                        keep_items=jsonl is not None,
                     )
                 )
                 result = outcome.result
@@ -160,7 +179,7 @@ def _cancel_on_sigterm() -> None:
 
 
 async def _dry_run(
-    code: str, *, headless: bool, max_pages: int | None, save_raw: bool
+    code: str, *, transport: TransportMode, headless: bool, max_pages: int | None, save_raw: bool
 ) -> ScrapeResult:
     settings = get_settings()
     config = get_config(code)
@@ -168,8 +187,10 @@ async def _dry_run(
     options = RunOptions(concurrency=config.concurrency, max_pages_per_segment=max_pages)
     _cancel_on_sigterm()
 
-    async with BrowserSession(settings.browser_profile_dir(code), headless=headless) as browser:
-        adapter = create_adapter(code, browser)
+    profile = settings.browser_profile_dir(code)
+    async with open_adapter(
+        code, transport=transport, headless=headless, profile_dir=profile
+    ) as adapter:
         with make_progress(console) as progress:
             runner = ScrapeRunner(
                 adapter,
@@ -186,29 +207,35 @@ async def _dry_run(
 async def _persisted_run(
     code: str,
     *,
+    transport: TransportMode,
     headless: bool,
     max_pages: int | None,
     save_raw: bool,
     resume: bool,
     trigger: str,
+    keep_items: bool,
 ) -> RunOutcome:
     settings = get_settings()
     config = get_config(code)
     archive = RawArchive(settings.raw_dir, code) if save_raw else None
-    options = RunOptions(concurrency=config.concurrency, max_pages_per_segment=max_pages)
+    options = RunOptions(
+        concurrency=config.concurrency, max_pages_per_segment=max_pages, keep_items=keep_items
+    )
     _cancel_on_sigterm()
 
     @asynccontextmanager
-    async def open_adapter() -> AsyncIterator[SiteAdapter]:
+    async def opener() -> AsyncIterator[SiteAdapter]:
         profile = settings.browser_profile_dir(code)
-        async with BrowserSession(profile, headless=headless) as browser:
-            yield create_adapter(code, browser)
+        async with open_adapter(
+            code, transport=transport, headless=headless, profile_dir=profile
+        ) as adapter:
+            yield adapter
 
     engine, factory = _open_database()
     try:
         with make_progress(console) as progress:
             return await execute_run(
-                open_adapter,
+                opener,
                 config.site_info,
                 factory,
                 options=options,
@@ -229,6 +256,8 @@ def _finish_archive(archive: RawArchive | None) -> None:
 
 
 def _write_jsonl(path: Path, result: ScrapeResult) -> None:
+    if result.items is None:
+        raise RuntimeError("Items were not kept in memory for this run")
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as fh:
         for item in result.items.values():
