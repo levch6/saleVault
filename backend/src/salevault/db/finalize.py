@@ -27,6 +27,7 @@ from salevault.db.models import (
     ScrapeRun,
 )
 from salevault.db.types import utcnow
+from salevault.domain.brands import brand_key
 from salevault.domain.models import BrandRef, CategoryNode, CategoryRef, ProductRecord
 from salevault.domain.taxonomy import categorize
 
@@ -292,6 +293,7 @@ class _BrandIndex:
                         "site_id": self.site_id,
                         "external_id": b.external_id,
                         "name": b.name,
+                        "name_key": brand_key(b.name),
                         "slug": b.slug,
                     }
                     for b in brands.values()
@@ -300,7 +302,11 @@ class _BrandIndex:
             self.session.execute(
                 stmt.on_conflict_do_update(
                     index_elements=[Brand.site_id, Brand.external_id],
-                    set_={"name": stmt.excluded.name, "slug": stmt.excluded.slug},
+                    set_={
+                        "name": stmt.excluded.name,
+                        "name_key": stmt.excluded.name_key,
+                        "slug": stmt.excluded.slug,
+                    },
                 )
             )
             missing = [ext for ext in brands if ext not in self.ids]

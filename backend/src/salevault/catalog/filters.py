@@ -9,7 +9,7 @@ from sqlalchemy import ColumnElement, and_, exists, false, func, select
 from sqlalchemy.orm import Session, aliased
 
 from salevault.catalog.schemas import GENDER_BITS, CatalogQuery
-from salevault.db.models import Favorite, Product, ProductSize, ScrapeRun
+from salevault.db.models import Brand, Favorite, Product, ProductSize, ScrapeRun
 from salevault.domain.taxonomy import leaves_of
 
 FacetName = Literal["site", "gender", "category", "brand", "size", "price", "discount"]
@@ -88,7 +88,7 @@ class CatalogFilter:
             mask = sum(GENDER_BITS[g] for g in set(q.gender))
             conds.append(Product.gender_mask.op("&")(mask) != 0)
         if q.brand and skip != "brand":
-            conds.append(Product.brand_id.in_(q.brand))
+            conds.append(Product.brand_id.in_(select(Brand.id).where(Brand.name_key.in_(q.brand))))
         if q.category and skip != "category":
             conds.append(Product.category_slug.in_(leaves_of(q.category)))
         if q.size and skip != "size":

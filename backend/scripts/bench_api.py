@@ -45,8 +45,8 @@ def main() -> None:
     with TestClient(app, base_url="http://localhost") as client:
         total = client.get("/api/products", params={"page_size": 1}).json()["total"]
         some = client.get("/api/products", params={"page_size": 1}).json()["items"][0]
-        brand = some["brand"]["id"]
         facets = client.get("/api/facets").json()
+        brand = facets["brands"][0]["id"]
         category = facets["categories"][0]["id"]
         client.put("/api/settings", json={"my_sizes": ["M", "42"]})
         print(f"catalog: {total:,} active items\n")

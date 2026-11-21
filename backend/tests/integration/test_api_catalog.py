@@ -15,7 +15,7 @@ from salevault.config import Settings
 from salevault.db.engine import session_scope
 from salevault.db.models import Product
 from salevault.db.runs import RunRepository
-from salevault.domain.models import CategoryNode, Gender
+from salevault.domain.models import BrandRef, CategoryNode, Gender
 from salevault.scraper.sites.registry import ANSWEAR_UA, PRM
 from tests.integration.helpers import complete_run, product, seed_run
 
@@ -118,7 +118,7 @@ def test_unisex_items_match_both_genders(seeded: TestClient) -> None:
 @pytest.mark.parametrize(
     ("params", "expected"),
     [
-        ({"brand": None}, ["b", "e"]),  # brand id resolved in the test
+        ({"brand": "brand-2"}, ["b", "e"]),
         ({"price_min": 100, "price_max": 300}, ["b", "e"]),
         ({"discount_min": 50, "discount_max": 60}, ["b", "d"]),
         ({"q": "PRODUCT  E"}, ["e"]),  # casefolded, any whitespace
@@ -131,10 +131,6 @@ def test_unisex_items_match_both_genders(seeded: TestClient) -> None:
     ],
 )
 def test_filters(seeded: TestClient, params: dict[str, Any], expected: list[str]) -> None:
-    if "brand" in params:
-        brand_2 = next(i["brand"]["id"] for i in items(seeded) if i["brand"]["name"] == "Brand 2")
-        params = {"brand": brand_2}
-
     assert sorted(names(seeded, **params)) == expected
 
 
@@ -237,9 +233,7 @@ def test_sorts(seeded: TestClient, sort: str, first: str) -> None:
 
 
 def test_facets_ignore_their_own_filter(seeded: TestClient) -> None:
-    brand_2 = next(i["brand"]["id"] for i in items(seeded) if i["brand"]["name"] == "Brand 2")
-
-    facets = seeded.get("/api/facets", params={"brand": brand_2}).json()
+    facets = seeded.get("/api/facets", params={"brand": "brand-2"}).json()
 
     assert facets["total"] == 2
     assert {b["name"]: b["count"] for b in facets["brands"]} == {
@@ -257,6 +251,19 @@ def test_facets_ignore_their_own_filter(seeded: TestClient) -> None:
     assert {s["label"]: s["count"] for s in facets["sizes"]} == {"S": 1, "M": 1}
     assert facets["price"] == {"min": 200, "max": 300}
     assert facets["discount"] == {"min": 50, "max": 80}
+
+
+def test_a_brand_is_one_entry_across_shops(seeded: TestClient) -> None:
+    other = product("x", 100, regular=200, categories=JACKETS)
+    other = other.model_copy(
+        update={"site": ANSWEAR_UA.code, "brand": BrandRef(external_id="77", name="BRAND® 2")}
+    )
+    seed_run(factory_of(seeded), ANSWEAR_UA.site_info, [(Gender.MEN, [other])])
+
+    brands = {b["id"]: (b["name"], b["count"]) for b in seeded.get("/api/facets").json()["brands"]}
+
+    assert brands["brand-2"] == ("Brand 2", 3)  # the spelling with the most items
+    assert sorted(names(seeded, brand="brand-2")) == ["b", "e", "x"]
 
 
 def test_light_facets_skip_sizes(seeded: TestClient) -> None:

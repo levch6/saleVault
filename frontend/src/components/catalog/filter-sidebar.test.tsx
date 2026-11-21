@@ -127,11 +127,11 @@ describe('FilterSidebar', () => {
 
   it('filters brands by name and keeps selected ones on top', async () => {
     const brands = Array.from({ length: 14 }, (_, i) => ({
-      id: i + 1,
+      id: `brand-${String.fromCharCode(97 + i)}`,
       name: `Brand ${String.fromCharCode(65 + i)}`,
       count: 100 - i,
     }))
-    const { user } = renderSidebar({ search: { brand: [14] }, cheap: facets({ brands }) })
+    const { user } = renderSidebar({ search: { brand: ['brand-n'] }, cheap: facets({ brands }) })
 
     const shown = () => screen.getAllByRole('checkbox', { name: /^Brand / })
     expect(shown()).toHaveLength(12)

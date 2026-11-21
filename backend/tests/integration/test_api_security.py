@@ -82,7 +82,7 @@ def test_the_ui_gets_a_strict_script_policy(client: TestClient) -> None:
     ("method", "path"),
     [
         ("GET", "/api/products/" + "9" * 25),
-        ("GET", "/api/products?brand=" + "9" * 25),
+        ("GET", "/api/products?brand=" + "9" * 300),
         ("GET", "/api/products?price_min=" + "9" * 25),
         ("GET", "/api/products?page=" + "9" * 18),
         ("PUT", "/api/favorites/" + "9" * 25),

@@ -198,6 +198,25 @@ def facets(session: Session, query: FacetsQuery) -> Facets:
     return result
 
 
+def _brand_facets(
+    rows: Iterable[tuple[int, str, str]], counts: Mapping[int, int]
+) -> list[BrandFacet]:
+    """One entry per brand across shops, named as the shop with the most of its items spells
+    it; biggest first."""
+    totals: dict[str, int] = {}
+    spellings: dict[str, dict[str, int]] = {}
+    for brand_id, key, name in rows:
+        n = counts[brand_id]
+        totals[key] = totals.get(key, 0) + n
+        by_name = spellings.setdefault(key, {})
+        by_name[name] = by_name.get(name, 0) + n
+    facets = [
+        BrandFacet(id=key, name=min(names, key=lambda nm: (-names[nm], nm)), count=totals[key])
+        for key, names in spellings.items()
+    ]
+    return sorted(facets, key=lambda b: (-b.count, b.name))
+
+
 def _category_facets(leaf_counts: Mapping[str, int]) -> list[CategoryFacet]:
     """The shared tree in its own order with counts rolled up to the groups; empty nodes are
     left out."""
@@ -260,14 +279,11 @@ def _compute_facets(session: Session, query: FacetsQuery) -> Facets:
         .where(*flt.conditions(skip="brand"))
         .group_by(Product.brand_id),
     )
-    brands = sorted(
-        (
-            BrandFacet(id=brand_id, name=name, count=brand_counts[brand_id])
-            for brand_id, name in session.execute(
-                select(Brand.id, Brand.name).where(Brand.id.in_(brand_counts))
-            )
+    brands = _brand_facets(
+        session.execute(
+            select(Brand.id, Brand.name_key, Brand.name).where(Brand.id.in_(brand_counts))
         ),
-        key=lambda b: (-b.count, b.name),
+        brand_counts,
     )
 
     leaf_counts: dict[str, int] = {  # noqa: C416 (dict(Result) breaks: Result has .keys())

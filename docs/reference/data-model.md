@@ -53,7 +53,7 @@ A partial unique index on `site_id` where `status = 'running'` keeps at most one
 
 ### `brands`
 
-`id`, `site_id`, `external_id`, `name`, `slug`. Unique `(site_id, external_id)`.
+`id`, `site_id`, `external_id`, `name`, `name_key`, `slug`. Unique `(site_id, external_id)`; index on `name_key`. Brands are stored per shop; `name_key` (`domain/brands.py`: accents and trademark signs removed, casefolded, words joined with `-`) joins the same brand across shops for the brand filter and facet.
 
 ### `categories`
 

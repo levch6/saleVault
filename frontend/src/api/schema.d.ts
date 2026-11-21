@@ -227,8 +227,11 @@ export interface components {
     schemas: {
         /** BrandFacet */
         BrandFacet: {
-            /** Id */
-            id: number;
+            /**
+             * Id
+             * @description Brand key, the same in every shop
+             */
+            id: string;
             /** Name */
             name: string;
             /** Count */
@@ -664,7 +667,8 @@ export interface operations {
                 gender?: ("men" | "women" | "home" | "kids")[];
                 /** @description Shared categories: a group matches all of its leaves */
                 category?: string[];
-                brand?: number[];
+                /** @description Brand keys; one key covers every shop */
+                brand?: string[];
                 /** @description Size labels in stock */
                 size?: string[];
                 /** @description Only items with one of my sizes in stock */
@@ -716,7 +720,8 @@ export interface operations {
                 gender?: ("men" | "women" | "home" | "kids")[];
                 /** @description Shared categories: a group matches all of its leaves */
                 category?: string[];
-                brand?: number[];
+                /** @description Brand keys; one key covers every shop */
+                brand?: string[];
                 /** @description Size labels in stock */
                 size?: string[];
                 /** @description Only items with one of my sizes in stock */

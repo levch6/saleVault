@@ -18,7 +18,7 @@ The API serves the UI; it is also handy for scripts on the same machine. It list
 | `site` | string[] | shop codes, e.g. `prm`; an unknown code matches nothing |
 | `gender` | string[] | `men`, `women`, `home`, `kids` (matches any; unisex items match both men and women) |
 | `category` | string[] | slugs of the shared category tree: a group (`clothing`) matches all of its leaves, a leaf (`clothing.jackets`) only itself |
-| `brand` | int[] | brand ids |
+| `brand` | string[] | brand keys, the same in every shop (`karl-lagerfeld` covers "KARL LAGERFELD" in one shop and "Karl Lagerfeld" in another) |
 | `size` | string[] | size labels that must be **in stock** |
 | `my_sizes` | bool | only items with one of the saved sizes in stock (ignored while no sizes are saved) |
 | `price_min`, `price_max` | int | current price, whole hryvnias, inclusive |
@@ -74,14 +74,14 @@ Takes the same filters as `/api/products` (no sort or paging) plus `heavy`. Each
   "sites": [{"value": "prm", "label": "PRM", "count": 17577}],
   "genders": [{"value": "men", "label": "Men", "count": 10674}, "... women, home, kids (always all four)"],
   "categories": [{"id": "clothing.jackets", "name": "Jackets", "parent_id": "clothing", "depth": 1, "count": 9000}],
-  "brands": [{"id": 5, "name": "<brand>", "count": 120}],
+  "brands": [{"id": "<brand-key>", "name": "<brand>", "count": 120}],
   "sizes": [{"label": "M", "count": 6183}],
   "price": {"min": 269, "max": 141899},
   "discount": {"min": 0, "max": 79}
 }
 ```
 
-Order: categories in the order of the shared tree (groups followed by their leaves, only those with items; counts of a group include its leaves); brands and sizes by count, then name or label.
+Order: categories in the order of the shared tree (groups followed by their leaves, only those with items; counts of a group include its leaves); brands and sizes by count, then name or label. A brand sold by several shops is one entry: its count covers all of them and its name is the spelling of the shop with the most of its items.
 
 ### `GET /api/products/{id}`
 

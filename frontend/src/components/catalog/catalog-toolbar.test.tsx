@@ -45,7 +45,7 @@ describe('CatalogToolbar', () => {
     expect(screen.queryByRole('button', { name: 'Reset all' })).not.toBeInTheDocument()
     unmount()
 
-    const { user, onReset } = renderToolbar({ brand: [1], discount_min: 50 })
+    const { user, onReset } = renderToolbar({ brand: ['acme'], discount_min: 50 })
     expect(screen.getByRole('button', { name: /Filters \(2\)/ })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Reset all' }))
 

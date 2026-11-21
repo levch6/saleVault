@@ -12,6 +12,8 @@ MAX_PRICE = 100_000_000
 """Whole currency units; far above any real price and far below an integer overflow."""
 Id = Annotated[int, Field(ge=1, le=MAX_ID)]
 CategorySlug = Annotated[str, Field(pattern=r"^[a-z]+(\.[a-z]+)?$", max_length=64)]
+BrandKey = Annotated[str, Field(pattern=r"^[\w-]+$", max_length=255)]
+"""A brand across shops: its name casefolded, words joined with "-" (`domain/brands.py`)."""
 """A group (`clothing`) or a leaf (`clothing.jackets`) of the shared category tree."""
 
 
@@ -47,7 +49,9 @@ class CatalogQuery(BaseModel):
         max_length=100,
         description="Shared categories: a group matches all of its leaves",
     )
-    brand: list[Id] = Field(default_factory=list, max_length=500)
+    brand: list[BrandKey] = Field(
+        default_factory=list, max_length=500, description="Brand keys; one key covers every shop"
+    )
     size: list[str] = Field(
         default_factory=list, max_length=200, description="Size labels in stock"
     )
@@ -163,7 +167,7 @@ class ValueCount(_Out):
 
 
 class BrandFacet(_Out):
-    id: int
+    id: str = Field(description="Brand key, the same in every shop")
     name: str
     count: int
 

@@ -13,7 +13,7 @@ describe('validateCatalogSearch', () => {
       validateCatalogSearch({
         q: '  polo  ',
         gender: 'women',
-        brand: [3, '7', 3],
+        brand: ['karl-lagerfeld', 'levi-s', 'karl-lagerfeld'],
         size: ['M', ' L ', ''],
         price_max: '5000',
         discount_min: 50,
@@ -25,7 +25,7 @@ describe('validateCatalogSearch', () => {
     ).toEqual({
       q: 'polo',
       gender: ['women'],
-      brand: [3, 7],
+      brand: ['karl-lagerfeld', 'levi-s'],
       size: ['M', 'L'],
       price_max: 5000,
       discount_min: 50,
@@ -40,7 +40,7 @@ describe('validateCatalogSearch', () => {
     expect(
       validateCatalogSearch({
         gender: ['aliens'],
-        brand: ['x', -1, 1.5],
+        brand: [7, '12', 'with space', 'a/b'],
         discount_min: 150,
         price_min: 'cheap',
         flags: ['hot'],
@@ -66,11 +66,11 @@ describe('validateCatalogSearch', () => {
 })
 
 describe('query helpers', () => {
-  const search = validateCatalogSearch({ brand: [1], sort: 'newest', product: 9, q: 'cap' })
+  const search = validateCatalogSearch({ brand: ['acme'], sort: 'newest', product: 9, q: 'cap' })
 
   it('removes UI-only state from API queries', () => {
-    expect(toApiQuery(search)).toEqual({ brand: [1], sort: 'newest', q: 'cap' })
-    expect(toFacetQuery(search)).toEqual({ brand: [1], q: 'cap' })
+    expect(toApiQuery(search)).toEqual({ brand: ['acme'], sort: 'newest', q: 'cap' })
+    expect(toFacetQuery(search)).toEqual({ brand: ['acme'], q: 'cap' })
   })
 
   it('counts active filters, not sort or the open item', () => {

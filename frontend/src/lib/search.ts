@@ -26,7 +26,8 @@ export interface CatalogSearch {
   gender?: Gender[]
   /** Shared category tree: a group (`clothing`) or a leaf (`clothing.jackets`). */
   category?: string[]
-  brand?: number[]
+  /** Brand keys, the same in every shop (`karl-lagerfeld`). */
+  brand?: string[]
   size?: string[]
   my_sizes?: boolean
   price_min?: number
@@ -60,18 +61,19 @@ function int(value: unknown, min: number, max: number): number | undefined {
   return Number.isInteger(n) && n >= min && n <= max ? n : undefined
 }
 
-function ints(value: unknown): number[] | undefined {
-  const out = asList(value)
-    .map((v) => int(v, 1, Number.MAX_SAFE_INTEGER))
-    .filter((v): v is number => v !== undefined)
-  return out.length ? [...new Set(out)] : undefined
-}
-
 const SLUG = /^[a-z]+(\.[a-z]+)?$/
 
 /** Category slugs; old numeric ids from saved links are dropped. */
 function slugs(value: unknown): string[] | undefined {
   const out = strings(value)?.filter((v) => SLUG.test(v))
+  return out?.length ? out : undefined
+}
+
+const BRAND_KEY = /^[\p{L}\p{N}_-]+$/u
+
+/** Brand keys; old numeric brand ids from saved links are dropped. */
+function brandKeys(value: unknown): string[] | undefined {
+  const out = strings(value, 255)?.filter((v) => BRAND_KEY.test(v) && !/^\d+$/.test(v))
   return out?.length ? out : undefined
 }
 
@@ -95,7 +97,7 @@ export function validateCatalogSearch(raw: Record<string, unknown>): CatalogSear
     site: strings(raw.site),
     gender: manyOf(raw.gender, GENDERS),
     category: slugs(raw.category),
-    brand: ints(raw.brand),
+    brand: brandKeys(raw.brand),
     size: strings(raw.size),
     my_sizes: raw.my_sizes === true || raw.my_sizes === 'true' ? true : undefined,
     price_min: int(raw.price_min, 0, 10_000_000),

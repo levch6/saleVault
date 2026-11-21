@@ -113,12 +113,18 @@ class RunItem(Base):
 
 class Brand(Base):
     __tablename__ = "brands"
-    __table_args__ = (UniqueConstraint("site_id", "external_id"), Index(None, "name"))
+    __table_args__ = (
+        UniqueConstraint("site_id", "external_id"),
+        Index(None, "name"),
+        Index(None, "name_key"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     site_id: Mapped[int] = mapped_column(ForeignKey("sites.id"))
     external_id: Mapped[str] = mapped_column(String(64))
     name: Mapped[str] = mapped_column(String(255))
+    name_key: Mapped[str] = mapped_column(String(255), server_default="")
+    """The same brand across shops (`domain/brands.py`), e.g. "karl-lagerfeld"."""
     slug: Mapped[str | None] = mapped_column(String(255))
 
 

@@ -102,8 +102,8 @@ export function facets(overrides: Partial<Facets> = {}): Facets {
     ],
     categories: [],
     brands: [
-      { id: 1, name: 'Acme', count: 40 },
-      { id: 2, name: 'Borealis', count: 30 },
+      { id: 'acme', name: 'Acme', count: 40 },
+      { id: 'borealis', name: 'Borealis', count: 30 },
     ],
     sizes: null,
     price: { min: 100, max: 9000 },
