@@ -4,7 +4,7 @@ A local tool that collects sale items from fashion shops and shows them **sorted
 
 Supported shops: PRM.com (UA), with Answear.ua planned.
 
-> **Status:** early development. The app shell runs; the scraper is not implemented yet.
+> **Status:** early development. The PRM scraper works in dry-run mode (prints a summary); storage and the catalog UI are next.
 
 ## Requirements
 
@@ -21,6 +21,16 @@ just start    # build the UI and serve it together with the API on http://localh
 ```
 
 On WSL2 the app opens in a regular Windows browser at `localhost`.
+
+## Scraping
+
+```bash
+just scrape prm                 # full PRM sale (~17k items, a few minutes), prints the top discounts
+just scrape prm --max-pages 1   # quick smoke run
+just scrape prm --jsonl ../data/exports/prm.jsonl   # also export normalized items
+```
+
+The scraper drives a real Chromium through Playwright and calls the shop's own catalog API from the page, at a polite rate (about one request per second). PRM rejects headless browsers, so a Chromium window is shown during the run (WSLg on Windows 11). There is no stealth or anti-bot evasion: if the site blocks the run, the scraper stops and reports it.
 
 ## Development
 

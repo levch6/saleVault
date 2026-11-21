@@ -25,8 +25,10 @@ Personal, local-only tool: scrapes the sale sections of fashion shops (PRM.com, 
 - `just dev`: backend on :8000 (reload) + Vite on :5173 (proxies `/api`)
 - `just start`: build the UI, then a single process on :8000 serves UI + API
 - `just check`: lint + type check + tests (`just lint`, `just test`); run before every commit
+- `just scrape prm [args]`: scrape a site (currently always `--dry-run`); e.g. `--max-pages 1` for a quick smoke run, `--jsonl path` to export items
 - `just fmt`, `just build`, `just gen-api`
-- Coming with later phases: `just scrape <site>`, `just db-upgrade`
+- Coming with later phases: `just db-upgrade`
+- Live tests (hit the real site, open a browser window): `cd backend && uv run pytest -m live`
 
 ## Gotchas
 
@@ -34,6 +36,8 @@ Personal, local-only tool: scrapes the sale sections of fashion shops (PRM.com, 
 - `src/routeTree.gen.ts` and `src/api/schema.d.ts` are generated but committed (needed by `tsc` on a fresh clone) and excluded from Biome. Never edit them by hand.
 - pnpm 12 asks for approval of agent "skills" shipped by `@tanstack/react-router` and `@tanstack/router-plugin`. They are deliberately left unapproved; don't approve them without asking the user.
 - shadcn's `cn` helper comes from the `cn` package (shadcn-ui/cn) via `@/lib/utils`.
+- PRM blocks Playwright's headless shell (HTTP 403 at warm-up), so its site config runs a headed Chromium window through WSLg. Do not "fix" this with user agent or fingerprint changes.
+- Test fixtures must be anonymized: build them with `backend/scripts/make_fixture.py` from `data/raw/...` archives, never copy raw shop responses into the repo.
 
 ## Conventions
 
