@@ -30,6 +30,8 @@ def _features(item: dict[str, Any]) -> set[str]:
     found.update(f"size_{a}" for a in availability)
     if len(item.get("allSizes", [])) <= 1:
         found.add("single_size")
+    if len(item.get("categories", [])) > 4:
+        found.add("several_category_paths")
     return found
 
 
@@ -104,6 +106,30 @@ def anonymize_filters(filters: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return out
 
 
+def anonymize_tree(tree: dict[str, Any], items: list[dict[str, Any]]) -> dict[str, Any]:
+    """Keep the branches the sample items use (plus one unrelated branch), rename every node."""
+    used = {str(c["id"]) for item in items for c in item.get("categories", [])}
+    spare_kept = False
+
+    def prune(node: dict[str, Any]) -> dict[str, Any] | None:
+        nonlocal spare_kept
+        children = [kept for child in node.get("children", []) if (kept := prune(child))]
+        relevant = str(node["id"]) in used or children
+        if not relevant and not spare_kept and node.get("children") == []:
+            spare_kept = True  # one leaf nobody uses, to prove unused nodes are stored too
+            relevant = True
+        if not relevant:
+            return None
+        return {
+            "id": node["id"],
+            "name": f"Category {node['id']}",
+            "slug": f"category-{node['id']}",
+            "children": children,
+        }
+
+    return {"items": [kept for root in tree.get("items", []) if (kept := prune(root))]}
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("raw", type=Path)
@@ -121,6 +147,8 @@ def main() -> None:
     ]
     fixture = {key: page[key] for key in KEEP_TOP_LEVEL if key in page}
     fixture["filters"] = anonymize_filters(page.get("filters", []))
+    if isinstance(page.get("categoryTree"), dict):
+        fixture["categoryTree"] = anonymize_tree(page["categoryTree"], items)
     fixture["items"] = items
 
     args.out.parent.mkdir(parents=True, exist_ok=True)

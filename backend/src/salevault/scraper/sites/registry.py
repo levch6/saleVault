@@ -26,3 +26,19 @@ def get_config(code: str) -> AnswearPlatformConfig:
 
 def create_adapter(code: str, transport: Transport) -> AnswearPlatformAdapter:
     return AnswearPlatformAdapter(get_config(code), transport)
+
+
+THUMB_SIZE = (316, 478)
+"""Grid cards: about 40 KB per image."""
+FULL_SIZE = (1200, 1800)
+
+
+def image_urls(code: str, name: str, version: str) -> tuple[str, str] | None:
+    """(thumbnail, full size) URLs of a product image, or None for an unknown site."""
+    config = SITES.get(code)
+    if config is None:
+        return None
+    return (
+        config.image_url(name, version, *THUMB_SIZE),
+        config.image_url(name, version, *FULL_SIZE),
+    )

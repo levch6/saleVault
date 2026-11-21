@@ -37,6 +37,15 @@ class CategoryRef(_Frozen):
     name: str
 
 
+class CategoryNode(_Frozen):
+    """A node of the shop's category tree (the source of truth for parents and depth)."""
+
+    external_id: str
+    name: str
+    parent_external_id: str | None
+    depth: int
+
+
 class SizeRecord(_Frozen):
     external_id: str
     label: str
@@ -57,7 +66,8 @@ class ProductRecord(_Frozen):
     image: ImageRef | None
     gallery: tuple[ImageRef, ...]
     categories: tuple[CategoryRef, ...]
-    """Root-to-leaf category path as served by the site."""
+    """Category assignments as served: one or more root-to-leaf paths, concatenated and
+    sometimes without their root. Parents come from the category tree, not from this list."""
     price_minor: int
     price_regular_minor: int
     price_min30_minor: int | None

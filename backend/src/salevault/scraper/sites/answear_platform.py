@@ -13,6 +13,7 @@ from pydantic.alias_generators import to_camel
 from salevault.domain.discounts import to_minor
 from salevault.domain.models import (
     BrandRef,
+    CategoryNode,
     CategoryRef,
     Gender,
     ImageRef,
@@ -66,6 +67,12 @@ class AnswearPlatformConfig:
     @property
     def products_path(self) -> str:
         return f"{self.base_path}/api/products"
+
+    image_host: str = "https://img2.ans-media.com"
+    """The CDN resizes on the fly to any WxH."""
+
+    def image_url(self, name: str, version: str, width: int, height: int) -> str:
+        return f"{self.image_host}/i/{width}x{height}/{name}?v={version}"
 
     @property
     def site_info(self) -> SiteInfo:
@@ -165,6 +172,7 @@ class RawProductsPage(_Api):
     count: int
     items: list[dict[str, Any]]
     filters: list[dict[str, Any]] = Field(default_factory=list)
+    category_tree: dict[str, Any] | None = None
 
 
 # --- Adapter ---------------------------------------------------------------------------------
@@ -203,7 +211,8 @@ class AnswearPlatformAdapter:
             "category": "",
             "page": page,
             "urlParams": "",
-            "categoryTreeRequired": False,
+            # The category tree (about 50 KB) is only needed once per run.
+            "categoryTreeRequired": segment == Segment() and page == 1,
             "sale": 1,
         }
 
@@ -251,6 +260,7 @@ class AnswearPlatformAdapter:
             facets=_parse_facets(envelope.filters),
             raw=response.text,
             invalid_items=invalid,
+            category_tree=_parse_category_tree(envelope.category_tree),
         )
 
     def root_segments(self, root: PageResult) -> list[Segment]:
@@ -314,6 +324,32 @@ def _raise_for_status(response: HttpResponse) -> None:
     if status in (403, 429):
         raise BlockedError(f"HTTP {status}")
     raise ContractError(f"HTTP {status}: {_short(response.text)}")
+
+
+def _parse_category_tree(raw: dict[str, Any] | None) -> tuple[CategoryNode, ...] | None:
+    """Flatten `categoryTree.items` (nested `children`) into nodes with parent and depth."""
+    if not raw or not isinstance(raw.get("items"), list):
+        return None
+    nodes: list[CategoryNode] = []
+    stack: list[tuple[dict[str, Any], str | None, int]] = [
+        (item, None, 0) for item in reversed(raw["items"])
+    ]
+    while stack:
+        item, parent, depth = stack.pop()
+        try:
+            node = CategoryNode(
+                external_id=str(item["id"]),
+                name=str(item["name"]).strip(),
+                parent_external_id=parent,
+                depth=depth,
+            )
+        except KeyError, TypeError:
+            log.warning("Ignoring malformed category tree node: %s", _short(str(item)))
+            continue
+        nodes.append(node)
+        children = item.get("children") or []
+        stack.extend((child, node.external_id, depth + 1) for child in reversed(children))
+    return tuple(nodes)
 
 
 def _parse_facets(filters: list[dict[str, Any]]) -> Facets:
