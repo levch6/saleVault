@@ -1,6 +1,6 @@
 # Security policy
 
-saleVault is a local, single-user application. Its server binds to `127.0.0.1` and has no authentication by design, so do not expose it to a network. It answers only to the host names `localhost` and `127.0.0.1` and refuses writes sent from other websites.
+saleVault is a local, single-user application. Its server binds to `127.0.0.1` and has no authentication by design, so do not expose it to a network. It answers only to the host names `localhost` and `127.0.0.1` and refuses writes sent from other websites. The UI is served with a strict Content-Security-Policy for scripts.
 
 ## Supported versions
 

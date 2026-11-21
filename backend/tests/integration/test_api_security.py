@@ -59,6 +59,15 @@ def test_security_and_cache_headers(client: TestClient) -> None:
     assert "immutable" in asset.headers["cache-control"]
 
 
+def test_the_ui_gets_a_strict_script_policy(client: TestClient) -> None:
+    policy = client.get("/").headers["content-security-policy"]
+
+    assert "script-src 'self';" in policy
+    assert "https://img2.ans-media.com" in policy
+    assert "frame-ancestors 'none'" in policy
+    assert "content-security-policy" not in client.get("/api/docs").headers, "Swagger uses a CDN"
+
+
 @pytest.mark.parametrize(
     ("method", "path"),
     [

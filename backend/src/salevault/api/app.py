@@ -23,6 +23,7 @@ from salevault.config import Settings, get_settings
 from salevault.db.engine import create_db_engine, make_session_factory, session_scope, sqlite_url
 from salevault.db.migrate import upgrade
 from salevault.db.runs import RunRepository
+from salevault.scraper.sites.registry import SITES
 
 log = logging.getLogger(__name__)
 
@@ -112,6 +113,8 @@ def _install_request_guards(app: FastAPI, config: Settings) -> None:
                 )
         return await call_next(request)
 
+    csp = content_security_policy()
+
     @app.middleware("http")
     async def security_headers(request: Request, call_next: CallNext) -> Response:
         response = await call_next(request)
@@ -119,6 +122,8 @@ def _install_request_guards(app: FastAPI, config: Settings) -> None:
         # Product images come from the shops' CDN: don't tell it about the local app.
         response.headers.setdefault("Referrer-Policy", "no-referrer")
         path = request.url.path
+        if not path.startswith("/api/"):  # the UI; /api/docs loads Swagger from a CDN
+            response.headers.setdefault("Content-Security-Policy", csp)
         if path.startswith("/assets/"):  # content-hashed file names
             response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
         elif not path.startswith("/api/"):  # index.html: pick up a new build right away
@@ -127,6 +132,26 @@ def _install_request_guards(app: FastAPI, config: Settings) -> None:
 
     # Added last, so it runs first: refuse unknown Host headers before anything else.
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=hosts)
+
+
+def content_security_policy() -> str:
+    """Scripts only from the app itself. Styles allow inline: Radix, Sonner and the chart set
+    them at runtime. Images also come from the shops' CDNs (product pictures)."""
+    image_hosts = " ".join(sorted({config.image_host for config in SITES.values()}))
+    return "; ".join(
+        (
+            "default-src 'self'",
+            "script-src 'self'",
+            "style-src 'self' 'unsafe-inline'",
+            f"img-src 'self' data: {image_hosts}",
+            "font-src 'self'",
+            "connect-src 'self'",
+            "object-src 'none'",
+            "base-uri 'none'",
+            "form-action 'self'",
+            "frame-ancestors 'none'",
+        )
+    )
 
 
 def _mount_frontend(app: FastAPI, dist: Path) -> None:
