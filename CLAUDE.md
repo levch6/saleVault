@@ -12,6 +12,7 @@ Personal, local-only tool: scrapes the sale sections of fashion shops (PRM.com, 
 - `backend/`: Python package `salevault` (scraper, db, api, cli).
 - `frontend/`: Vite + React SPA.
 - `data/`: runtime data (DB, browser profile, logs, raw dumps). Gitignored.
+- `.claude/`: Claude Code project config. `settings.json` holds shared permissions (asks before anything that hits the shops or leaves the machine, never reads `data/browser/`); `hooks/guard.py` blocks hand edits of generated files, `--no-verify`, force-adding `docs/` or `data/`, and `core.hooksPath` changes. Personal overrides go to `.claude/settings.local.json` (gitignored).
 
 ## Stack
 
@@ -56,6 +57,12 @@ Personal, local-only tool: scrapes the sale sections of fashion shops (PRM.com, 
 - UI-triggered runs are separate processes (`api/launcher.py`): `python -m salevault scrape <site> --trigger ui`, logs in `data/logs/`.
 - SQLAlchemy 2.1: never pass a `Result` to `dict()` (it has `.keys()`, so dict treats it as a mapping); use a comprehension. `Result.tuples()` is deprecated.
 - The DB lives in `data/salevault.db` (SQLite, WAL). The engine disables pysqlite's implicit transactions and emits `BEGIN` itself (`db/engine.py`); keep it that way.
+- CLI tests: Typer forces ANSI styling when `GITHUB_ACTIONS` is set, so assert on `plain(result)` (`tests/unit/test_cli.py`), never on raw `result.output`.
+- Frontend tests: `src/test/utils.tsx` has `renderWithClient`, `mockApi` (stubs fetch and records calls) and data builders. Seed the QueryClient cache instead of mounting a router; prices contain non-breaking spaces, so normalize the expected text. Radix menus and checkboxes work in jsdom without polyfills.
+- `backend/scripts/bench_api.py` writes settings (my sizes): run it only on a copy of the DB (`sqlite3 data/salevault.db ".backup <copy>"`).
+- Stopping dev servers: `pkill -f 'salevault serve'` also matches the shell that runs it and kills that very command (exit 144). Use `fuser -k 8000/tcp 5173/tcp`.
+- UI checks: `just dev`, then the Playwright MCP browser at http://127.0.0.1:5173. It saves screenshots only inside the repo (`.playwright-mcp/`, gitignored); delete them afterwards.
+- Dependabot PRs all touch `pnpm-lock.yaml`: merge one at a time, each after `@dependabot rebase` onto the current main and a green CI, by squash with a one-line subject of at most 100 characters (`gh pr merge N --squash --subject "..." --body ""`).
 - Test fixtures must be anonymized: build them with `backend/scripts/make_fixture.py` from `data/raw/...` archives, never copy raw shop responses into the repo.
 
 ## Conventions

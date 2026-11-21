@@ -112,5 +112,6 @@ backend/    Python package `salevault`: scraper, storage, catalog queries, HTTP 
 frontend/   single-page app
 justfile    all project commands
 .github/    CI (lint, type check, tests, UI build on every push) and Dependabot (monthly updates)
+.claude/    Claude Code project settings and a guard hook (see CLAUDE.md)
 data/       runtime data (database, backups, archives, logs); not tracked
 ```
