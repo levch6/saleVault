@@ -1,15 +1,22 @@
 import json
+import re
 from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
-from typer.testing import CliRunner
+from typer.testing import CliRunner, Result
 
 from salevault import __version__
 from salevault.cli import app
 from salevault.config import get_settings
 
 runner = CliRunner()
+ANSI = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def plain(result: Result) -> str:
+    """Output without styling or line wrapping (Typer forces colors when GITHUB_ACTIONS is set)."""
+    return " ".join(ANSI.sub("", result.output).split())
 
 
 @pytest.fixture
@@ -32,14 +39,14 @@ def test_scrape_rejects_unknown_sites() -> None:
     result = runner.invoke(app, ["scrape", "nope", "--dry-run"])
 
     assert result.exit_code == 2
-    assert "Unknown site" in result.output
+    assert "Unknown site" in plain(result)
 
 
 def test_resume_cannot_be_a_dry_run() -> None:
     result = runner.invoke(app, ["scrape", "prm", "--dry-run", "--resume"])
 
     assert result.exit_code == 2
-    assert "--resume" in result.output
+    assert "--resume" in plain(result)
 
 
 def test_db_upgrade_creates_the_database(data_dir: Path) -> None:
@@ -47,14 +54,14 @@ def test_db_upgrade_creates_the_database(data_dir: Path) -> None:
 
     assert result.exit_code == 0, result.output
     assert (data_dir / "salevault.db").is_file()
-    assert "is at revision" in " ".join(result.output.split())
+    assert "is at revision" in plain(result)
 
 
 def test_runs_on_an_empty_database(data_dir: Path) -> None:
     result = runner.invoke(app, ["runs"])
 
     assert result.exit_code == 0, result.output
-    assert "No runs yet" in result.output
+    assert "No runs yet" in plain(result)
 
 
 def test_openapi_export(tmp_path: Path) -> None:
