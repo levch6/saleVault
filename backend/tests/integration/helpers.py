@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from salevault.db.engine import session_scope
 from salevault.db.finalize import finalize_run
 from salevault.db.runs import DbRunSink, RunRepository
-from salevault.domain.models import CategoryNode, Gender, ProductRecord, SizeRecord
+from salevault.domain.models import CategoryNode, CategoryRef, Gender, ProductRecord, SizeRecord
 from salevault.scraper.base import Facets, PageResult, Segment, SiteInfo
 from tests.fakes import FakeItem, make_record
 
@@ -53,10 +53,15 @@ def product(
     min30: int | None = None,
     brand: str = "1",
     sizes: Sequence[tuple[str, bool]] = (("S", True),),
+    categories: Sequence[tuple[str, str]] | None = None,
 ) -> ProductRecord:
     record = make_record(
         FakeItem(item_id, frozenset(), price), regular=regular, min30=min30, brand=brand
     )
+    if categories is not None:
+        record = record.model_copy(
+            update={"categories": tuple(CategoryRef(external_id=e, name=n) for e, n in categories)}
+        )
     return record.model_copy(
         update={
             "sizes": tuple(

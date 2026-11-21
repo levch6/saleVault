@@ -32,3 +32,7 @@ Splitting the list at root categories removed most conflicts, but root-less path
 - One extra field on one request per run.
 - Category filters and facets are correct for unisex items and partial lists.
 - Shops without such a tree still work through the fallback.
+
+## Updates
+
+- **2026-11-21:** the catalog filter no longer uses the shops' trees but one shared tree ([ADR-0009](0009-shared-category-tree.md)); the shop's tree still decides the shop's own categories, which the item detail shows and the shared tree is derived from. Depths are now recomputed from the parent links after every merge.

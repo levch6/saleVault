@@ -2,7 +2,7 @@
 
 import json
 from collections import OrderedDict, defaultdict
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import replace
 from threading import Lock
 from typing import Any
@@ -46,6 +46,7 @@ from salevault.catalog.schemas import (
     Sort,
     ValueCount,
 )
+from salevault.db.categorize import TAXONOMY_KEY
 from salevault.db.models import (
     Brand,
     Category,
@@ -59,6 +60,7 @@ from salevault.db.models import (
     Site,
 )
 from salevault.db.types import utcnow
+from salevault.domain.taxonomy import TREE, ancestors
 from salevault.scraper.sites.registry import image_urls
 
 MY_SIZES_KEY = "my_sizes"
@@ -179,7 +181,9 @@ def data_version(session: Session) -> tuple[object, ...]:
         select(func.count(), func.max(Favorite.added_at)).select_from(Favorite)
     ).one()
     sizes = session.scalar(select(Setting.value_json).where(Setting.key == MY_SIZES_KEY))
-    return (finished, last_finished, fav_count, fav_last, sizes)
+    # Recategorizing (`salevault db recategorize`) moves products between categories.
+    taxonomy = session.scalar(select(Setting.value_json).where(Setting.key == TAXONOMY_KEY))
+    return (finished, last_finished, fav_count, fav_last, sizes, taxonomy)
 
 
 def facets(session: Session, query: FacetsQuery) -> Facets:
@@ -192,6 +196,26 @@ def facets(session: Session, query: FacetsQuery) -> Facets:
     result = _compute_facets(session, query)
     facet_cache.put(key, result)
     return result
+
+
+def _category_facets(leaf_counts: Mapping[str, int]) -> list[CategoryFacet]:
+    """The shared tree in its own order with counts rolled up to the groups; empty nodes are
+    left out."""
+    counts: dict[str, int] = {}
+    for slug, n in leaf_counts.items():
+        for node in ancestors(slug):
+            counts[node] = counts.get(node, 0) + n
+    return [
+        CategoryFacet(
+            id=node.slug,
+            name=node.name,
+            parent_id=node.parent,
+            depth=0 if node.parent is None else 1,
+            count=counts[node.slug],
+        )
+        for node in TREE
+        if counts.get(node.slug)
+    ]
 
 
 def _pairs(session: Session, stmt: Any) -> dict[int, int]:
@@ -246,28 +270,18 @@ def _compute_facets(session: Session, query: FacetsQuery) -> Facets:
         key=lambda b: (-b.count, b.name),
     )
 
-    categories: list[CategoryFacet] | None = None
+    leaf_counts: dict[str, int] = {  # noqa: C416 (dict(Result) breaks: Result has .keys())
+        slug: n
+        for slug, n in session.execute(
+            select(Product.category_slug, func.count())
+            .where(*flt.conditions(skip="category"))
+            .group_by(Product.category_slug)
+        )
+    }
+    categories = _category_facets(leaf_counts)
+
     sizes: list[SizeFacet] | None = None
     if query.heavy:
-        category_counts = _pairs(
-            session,
-            select(ProductCategory.category_id, func.count())
-            .select_from(Product)
-            .join(ProductCategory, ProductCategory.product_id == Product.id)
-            .where(*flt.conditions(skip="category"))
-            .group_by(ProductCategory.category_id),
-        )
-        categories = [
-            CategoryFacet(
-                id=cid, name=name, parent_id=parent, depth=depth, count=category_counts[cid]
-            )
-            for cid, name, parent, depth in session.execute(
-                select(Category.id, Category.name, Category.parent_id, Category.depth)
-                .where(Category.id.in_(category_counts))
-                .order_by(Category.depth, Category.name)
-            )
-        ]
-
         sizes = [
             SizeFacet(label=label, count=n)
             for label, n in session.execute(

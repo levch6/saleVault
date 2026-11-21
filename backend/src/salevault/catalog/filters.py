@@ -9,7 +9,8 @@ from sqlalchemy import ColumnElement, and_, exists, false, func, select
 from sqlalchemy.orm import Session, aliased
 
 from salevault.catalog.schemas import GENDER_BITS, CatalogQuery
-from salevault.db.models import Favorite, Product, ProductCategory, ProductSize, ScrapeRun
+from salevault.db.models import Favorite, Product, ProductSize, ScrapeRun
+from salevault.domain.taxonomy import leaves_of
 
 FacetName = Literal["site", "gender", "category", "brand", "size", "price", "discount"]
 FINISHED = ("success", "partial")
@@ -89,10 +90,7 @@ class CatalogFilter:
         if q.brand and skip != "brand":
             conds.append(Product.brand_id.in_(q.brand))
         if q.category and skip != "category":
-            link = aliased(ProductCategory)  # see _has_size_in_stock
-            conds.append(
-                exists().where(link.product_id == Product.id, link.category_id.in_(q.category))
-            )
+            conds.append(Product.category_slug.in_(leaves_of(q.category)))
         if q.size and skip != "size":
             conds.append(_has_size_in_stock(q.size))
         if q.my_sizes and self.my_sizes:

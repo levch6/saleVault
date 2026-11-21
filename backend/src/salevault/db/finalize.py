@@ -14,6 +14,7 @@ from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session
 
+from salevault.db.categorize import path_names, recompute_depths
 from salevault.db.models import (
     Brand,
     Category,
@@ -27,6 +28,7 @@ from salevault.db.models import (
 )
 from salevault.db.types import utcnow
 from salevault.domain.models import BrandRef, CategoryNode, CategoryRef, ProductRecord
+from salevault.domain.taxonomy import categorize
 
 MISSES_BEFORE_INACTIVE = 2
 """Consecutive successful runs without an item before it is considered gone (ADR-0004)."""
@@ -122,6 +124,7 @@ def finalize_run(
         chunk = [(ext, ProductRecord.model_validate_json(js), mask) for ext, mask, js in rows]
         _merge_chunk(session, site_id, run_id, now, chunk, existing, brands, categories, counters)
 
+    recompute_depths(session, site_id)
     missing = removed = 0
     if deactivate:
         missing, removed = _count_misses(session, site_id, run_id)
@@ -153,6 +156,8 @@ def _merge_chunk(
 ) -> None:
     brand_ids = brands.ensure(record.brand for _ext, record, _mask in chunk)
     categories.ensure(record.categories for _ext, record, _mask in chunk)
+    parents = categories.parents
+    names = categories.names
 
     inserts: list[dict[str, Any]] = []
     updates: list[dict[str, Any]] = []
@@ -160,6 +165,10 @@ def _merge_chunk(
     for external_id, record, mask in chunk:
         counters.seen += 1
         values = _product_values(record, mask, brand_ids[record.brand.external_id])
+        path = path_names((c.external_id for c in record.categories), parents, names)
+        values["category_slug"] = categorize(
+            path, (record.name, record.subtitle), record.brand.name
+        )
         values |= {
             "last_seen_at": now,
             "last_seen_run_id": run_id,
@@ -327,6 +336,10 @@ class _CategoryIndex:
     @property
     def parents(self) -> dict[str, str | None]:
         return {ext: parent for ext, (_n, parent, _d) in self.nodes.items()}
+
+    @property
+    def names(self) -> dict[str, str]:
+        return {ext: name for ext, (name, _p, _d) in self.nodes.items()}
 
     def ensure(self, category_lists: Iterable[Sequence[CategoryRef]]) -> None:
         added: list[str] = []

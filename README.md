@@ -7,7 +7,7 @@ A personal, local tool that collects the sale sections of fashion shops and show
 Supported shops: **PRM** (prm.com/ua), **Answear.ua**, **Footshop** (footshop.ua), **Saks85** (saks85.com) and **Modivo** (modivo.ua).
 
 - Catalog sorted by discount, or by the "honest" discount (against the lowest price of the last 30 days, where the shop reports it), savings, price or newest
-- Filters with live counts: shop, gender, category tree, brand, size in stock, price, minimum discount, text search
+- Filters with live counts: shop, gender, one category tree for all shops (jackets from every shop in one click), brand, size in stock, price, minimum discount, text search
 - **Only my sizes**: save your sizes once and see only items you can actually buy
 - **NEW** and **cheaper** badges since the previous run, and a price history chart for every item
 - Favorites that show how the price moved since you starred an item

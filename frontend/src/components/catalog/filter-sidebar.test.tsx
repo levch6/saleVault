@@ -23,12 +23,14 @@ function renderSidebar({
   return { ...view, onChange, user }
 }
 
+const tree = [
+  { id: 'clothing', name: 'Clothing', parent_id: null, depth: 0, count: 90 },
+  { id: 'clothing.coats', name: 'Coats', parent_id: 'clothing', depth: 1, count: 40 },
+  { id: 'clothing.jackets', name: 'Jackets', parent_id: 'clothing', depth: 1, count: 15 },
+]
+const cheap = facets({ categories: tree })
 const full = facets({
-  categories: [
-    { id: 10, name: 'Clothes', parent_id: null, depth: 0, count: 90 },
-    { id: 11, name: 'Coats', parent_id: 10, depth: 1, count: 40 },
-    { id: 12, name: 'Parkas', parent_id: 11, depth: 2, count: 15 },
-  ],
+  categories: tree,
   sizes: [
     { label: 'M', count: 50 },
     { label: '42', count: 20 },
@@ -42,17 +44,21 @@ describe('FilterSidebar', () => {
     expect(screen.queryByRole('heading')).not.toBeInTheDocument()
   })
 
-  it('keeps placeholders for categories and sizes until the full facets load', () => {
-    const { rerender, onChange } = renderSidebar()
+  it('shows categories at once and sizes when the full facets load', () => {
+    const { rerender, onChange } = renderSidebar({ cheap })
 
-    expect(screen.getByRole('heading', { name: 'Category' })).toBeInTheDocument()
-    expect(screen.queryByRole('checkbox', { name: /^Clothes/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: /^Clothing/ })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'M' })).not.toBeInTheDocument()
 
-    rerender(<FilterSidebar search={{}} facets={facets()} detail={full} onChange={onChange} />)
+    rerender(<FilterSidebar search={{}} facets={cheap} detail={full} onChange={onChange} />)
 
-    expect(screen.getByRole('checkbox', { name: /^Clothes/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'M' })).toBeInTheDocument()
+  })
+
+  it('hides the category section when nothing is categorized', () => {
+    renderSidebar()
+
+    expect(screen.queryByRole('heading', { name: 'Category' })).not.toBeInTheDocument()
   })
 
   it('offers the shop filter only when there are several shops', () => {
@@ -141,20 +147,20 @@ describe('FilterSidebar', () => {
   })
 
   it('expands the category tree on demand', async () => {
-    const { user, onChange } = renderSidebar({ detail: full })
+    const { user, onChange } = renderSidebar({ cheap })
 
     expect(screen.queryByRole('checkbox', { name: /^Coats/ })).not.toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Expand Clothes' }))
+    await user.click(screen.getByRole('button', { name: 'Expand Clothing' }))
     await user.click(screen.getByRole('checkbox', { name: /^Coats/ }))
 
-    expect(onChange).toHaveBeenCalledWith({ category: [11] })
+    expect(onChange).toHaveBeenCalledWith({ category: ['clothing.coats'] })
   })
 
   it('opens the branches that lead to a selected category', () => {
-    renderSidebar({ search: { category: [12] }, detail: full })
+    renderSidebar({ search: { category: ['clothing.jackets'] }, cheap })
 
-    expect(screen.getByRole('checkbox', { name: /^Parkas/ })).toBeChecked()
-    expect(screen.getByRole('button', { name: 'Collapse Clothes' })).toHaveAttribute(
+    expect(screen.getByRole('checkbox', { name: /^Jackets/ })).toBeChecked()
+    expect(screen.getByRole('button', { name: 'Collapse Clothing' })).toHaveAttribute(
       'aria-expanded',
       'true',
     )

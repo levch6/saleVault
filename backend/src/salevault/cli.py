@@ -14,14 +14,17 @@ import uvicorn
 from alembic.migration import MigrationContext
 from rich.console import Console
 from rich.logging import RichHandler
-from sqlalchemy import Engine
+from rich.table import Table
+from sqlalchemy import Engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from salevault import __version__
 from salevault.config import get_settings
-from salevault.db.engine import create_db_engine, make_session_factory, sqlite_url
+from salevault.db.categorize import coverage, mark_categorized, recategorize, recompute_depths
+from salevault.db.engine import create_db_engine, make_session_factory, session_scope, sqlite_url
 from salevault.db.maintenance import backup, vacuum
 from salevault.db.migrate import upgrade
+from salevault.db.models import Site
 from salevault.db.runs import NothingToResumeError, RunAlreadyRunningError, RunRepository
 from salevault.scraper.base import SiteAdapter, TransportMode
 from salevault.scraper.errors import ScrapeError
@@ -309,6 +312,37 @@ def db_upgrade() -> None:
     finally:
         engine.dispose()
     console.print(f"Database {settings.db_path} is at revision {revision}")
+
+
+@db_app.command("recategorize")
+def db_recategorize() -> None:
+    """Put every product in the shared category tree again and show how well each shop is
+    covered (this also happens on start after the rules change)."""
+    engine, factory = _open_database(write=True)
+    try:
+        with session_scope(factory) as session:
+            for site_id in session.scalars(select(Site.id)):
+                recompute_depths(session, site_id)
+            moved = recategorize(session)
+            mark_categorized(session)
+            report = coverage(session)
+    finally:
+        engine.dispose()
+    console.print(f"{moved} products moved to another category.")
+    table = Table("Shop", "Active items", "Specific", "Group catch-all", "Other")
+    for row in report:
+        table.add_row(
+            row.site,
+            f"{row.total:,}",
+            _share(row.specific, row.total),
+            _share(row.catch_all, row.total),
+            _share(row.other, row.total),
+        )
+    console.print(table)
+
+
+def _share(part: int, total: int) -> str:
+    return f"{part / total:.1%}" if total else "-"
 
 
 @app.command()

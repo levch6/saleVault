@@ -64,6 +64,8 @@ Transient problems (timeouts, network errors, 5xx) are retried up to 4 times wit
 
 ## Categories
 
+The catalog filter uses one category tree shared by every shop (Clothing > Jackets, Shoes > Sneakers and so on; gender is a filter of its own). Every product gets a place in it from what its shop says: the shop's category path, the product name and the subtitle. The rules and their order are in [ADR-0009](../decisions/0009-shared-category-tree.md); `salevault db recategorize` shows how well each shop is covered. The shops' own categories below are kept as well; the item drawer shows them.
+
 The Answear platform's API can return the shop's full category tree on the first request; the run stores it and the merge takes parents and depth from it. Each item is linked to its categories and all their ancestors, so filtering on a branch finds everything below it. Background: [ADR-0005](../decisions/0005-category-tree-from-the-api.md).
 
 Footshop's listing names only an item's main category (for example men's shoes or wallets), so its categories form a flat list.

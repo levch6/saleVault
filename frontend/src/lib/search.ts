@@ -24,7 +24,8 @@ export interface CatalogSearch {
   q?: string
   site?: string[]
   gender?: Gender[]
-  category?: number[]
+  /** Shared category tree: a group (`clothing`) or a leaf (`clothing.jackets`). */
+  category?: string[]
   brand?: number[]
   size?: string[]
   my_sizes?: boolean
@@ -66,6 +67,14 @@ function ints(value: unknown): number[] | undefined {
   return out.length ? [...new Set(out)] : undefined
 }
 
+const SLUG = /^[a-z]+(\.[a-z]+)?$/
+
+/** Category slugs; old numeric ids from saved links are dropped. */
+function slugs(value: unknown): string[] | undefined {
+  const out = strings(value)?.filter((v) => SLUG.test(v))
+  return out?.length ? out : undefined
+}
+
 function oneOf<T extends string>(value: unknown, allowed: readonly T[]): T | undefined {
   return allowed.find((a) => a === value)
 }
@@ -85,7 +94,7 @@ export function validateCatalogSearch(raw: Record<string, unknown>): CatalogSear
     q: q ? q.slice(0, 100) : undefined,
     site: strings(raw.site),
     gender: manyOf(raw.gender, GENDERS),
-    category: ints(raw.category),
+    category: slugs(raw.category),
     brand: ints(raw.brand),
     size: strings(raw.size),
     my_sizes: raw.my_sizes === true || raw.my_sizes === 'true' ? true : undefined,

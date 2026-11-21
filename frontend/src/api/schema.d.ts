@@ -243,12 +243,15 @@ export interface components {
         };
         /** CategoryFacet */
         CategoryFacet: {
-            /** Id */
-            id: number;
+            /**
+             * Id
+             * @description Slug of the shared category tree
+             */
+            id: string;
             /** Name */
             name: string;
             /** Parent Id */
-            parent_id: number | null;
+            parent_id: string | null;
             /** Depth */
             depth: number;
             /** Count */
@@ -277,7 +280,7 @@ export interface components {
             /** Genders */
             genders: components["schemas"]["ValueCount"][];
             /** Categories */
-            categories: components["schemas"]["CategoryFacet"][] | null;
+            categories: components["schemas"]["CategoryFacet"][];
             /** Brands */
             brands: components["schemas"]["BrandFacet"][];
             /** Sizes */
@@ -659,8 +662,8 @@ export interface operations {
                 /** @description Site codes, e.g. prm */
                 site?: string[];
                 gender?: ("men" | "women" | "home" | "kids")[];
-                /** @description Category ids, any level */
-                category?: number[];
+                /** @description Shared categories: a group matches all of its leaves */
+                category?: string[];
                 brand?: number[];
                 /** @description Size labels in stock */
                 size?: string[];
@@ -711,8 +714,8 @@ export interface operations {
                 /** @description Site codes, e.g. prm */
                 site?: string[];
                 gender?: ("men" | "women" | "home" | "kids")[];
-                /** @description Category ids, any level */
-                category?: number[];
+                /** @description Shared categories: a group matches all of its leaves */
+                category?: string[];
                 brand?: number[];
                 /** @description Size labels in stock */
                 size?: string[];
@@ -727,7 +730,7 @@ export interface operations {
                 flags?: ("new" | "price_drop" | "favorite")[];
                 /** @description Also items that left the sale */
                 include_inactive?: boolean;
-                /** @description Also count categories and sizes (the slow part on big catalogs). The UI asks for heavy=false first so the cheap facets show up at once. */
+                /** @description Also count sizes (the slow part on big catalogs). The UI asks for heavy=false first so the cheap facets show up at once. */
                 heavy?: boolean;
             };
             header?: never;

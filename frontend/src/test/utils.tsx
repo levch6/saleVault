@@ -100,7 +100,7 @@ export function facets(overrides: Partial<Facets> = {}): Facets {
       { value: 'home', label: 'Home', count: 0 },
       { value: 'kids', label: 'Kids', count: 0 },
     ],
-    categories: null,
+    categories: [],
     brands: [
       { id: 1, name: 'Acme', count: 40 },
       { id: 2, name: 'Borealis', count: 30 },

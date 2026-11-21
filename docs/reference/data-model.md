@@ -57,7 +57,7 @@ A partial unique index on `site_id` where `status = 'running'` keeps at most one
 
 ### `categories`
 
-`id`, `site_id`, `external_id`, `name`, `parent_id` (self-reference, nullable), `depth`. Unique `(site_id, external_id)`. Parents and depth come from the category tree of the run.
+`id`, `site_id`, `external_id`, `name`, `parent_id` (self-reference, nullable), `depth`. Unique `(site_id, external_id)`. Parents come from the category tree of the run; depths are recomputed from the parent links after every merge. These are the shop's own categories; the catalog filter uses the shared tree in `products.category_slug`.
 
 ### `products`
 
@@ -67,6 +67,7 @@ A partial unique index on `site_id` where `status = 'running'` keeps at most one
 | `url` | absolute link to the item on the shop site |
 | `brand_id`, `name`, `subtitle`, `color` | |
 | `gender_mask` | men 1, women 2, home 4, kids 8 |
+| `category_slug` | the item's leaf in the shared category tree, e.g. `clothing.jackets` ([ADR-0009](../decisions/0009-shared-category-tree.md)) |
 | `image_name`, `image_version`, `gallery_json` | image references; URLs are built by the shop adapter |
 | `price_minor`, `price_regular_minor`, `price_min30_minor` | current, regular and 30-day lowest price |
 | `discount_pct`, `discount_min30_pct`, `savings_minor` | see [prices and badges](../concepts/prices-and-badges.md) |
@@ -80,7 +81,7 @@ Indexes, all led by `is_active` where a sort or a cheap facet needs them:
 
 - `(is_active, discount_pct, savings_minor)`: the main catalog order.
 - `(is_active, discount_min30_pct, discount_pct)`, `(is_active, savings_minor)`, `(is_active, price_minor)`, `(is_active, first_seen_at)`: the other sorts.
-- `(is_active, brand_id)`, `(is_active, gender_mask)`: brand and gender facets without table lookups.
+- `(is_active, brand_id)`, `(is_active, gender_mask)`, `(is_active, category_slug)`: brand, gender and category facets without table lookups.
 - `(site_id, is_active, discount_pct)`, `(brand_id)`, `(first_seen_run_id)`, `(last_price_change_run_id)`.
 
 ### `product_categories`
@@ -101,7 +102,7 @@ Indexes, all led by `is_active` where a sort or a cheap facet needs them:
 
 ### `settings`
 
-`key`, `value_json`. Used keys: `my_sizes` (for example `["M", "43", "W32"]`).
+`key`, `value_json`. Used keys: `my_sizes` (for example `["M", "43", "W32"]`) and `taxonomy` (the version of the category rules the stored products were categorized with, and when).
 
 ## Merging a run
 
@@ -109,7 +110,7 @@ One transaction after all pages are fetched:
 
 1. Upsert the category tree, then stream `run_items` in chunks of 2,000 (keyset by `external_id`), upserting each chunk's brands and any categories missing from the tree. Memory stays flat: about 200,000 items merge in about 40 s.
 2. Upsert `products`: new items get `first_seen_*` and their first `price_history` row; a changed price sets `prev_price_minor` and `last_price_change_run_id` and adds a `price_history` row; every seen item gets `last_seen_*`, `is_active = 1` and `missed_runs = 0`.
-3. Rebuild `product_sizes` and `product_categories` for the seen items.
+3. Rebuild `product_sizes` and `product_categories` for the seen items; each seen item also gets its place in the shared category tree (`category_slug`).
 4. Only on `success`: items of the shop not seen get `missed_runs + 1`, and those reaching 2 become inactive.
 5. Record the run's status and statistics, and clear `run_items`, `run_pages` and the stored category tree of the run, in the same transaction.
 

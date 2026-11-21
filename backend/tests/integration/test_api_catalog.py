@@ -34,24 +34,34 @@ def client(tmp_path: Path) -> Iterator[TestClient]:
         yield test_client
 
 
+JACKETS = [("100", "Одяг"), ("101", "Куртки")]
+DRESSES = [("100", "Одяг"), ("102", "Сукні")]
+CANDLES = [("200", "Дім"), ("201", "Свічки")]
+
+
 @pytest.fixture
 def seeded(client: TestClient) -> TestClient:
     """Two runs. Run 2: `a` got cheaper, `e` is new, `d` was not seen (grace period)."""
     tree = [
-        CategoryNode(external_id="100", name="Root", parent_external_id=None, depth=0),
-        CategoryNode(external_id="101", name="Leaf", parent_external_id="100", depth=1),
+        CategoryNode(external_id="100", name="Одяг", parent_external_id=None, depth=0),
+        CategoryNode(external_id="101", name="Куртки", parent_external_id="100", depth=1),
+        CategoryNode(external_id="102", name="Сукні", parent_external_id="100", depth=1),
+        CategoryNode(external_id="200", name="Дім", parent_external_id=None, depth=0),
+        CategoryNode(external_id="201", name="Свічки", parent_external_id="200", depth=1),
     ]
-    a = product("a", 100, regular=400, sizes=[("S", True), ("M", False)])
-    b = product("b", 300, regular=600, min30=350, brand="2", sizes=[("M", True)])
-    c = product("c", 900, regular=1000, sizes=[("L", True)])
-    d = product("d", 50, regular=100, brand="3", sizes=[("ONE", True)])
+    a = product("a", 100, regular=400, sizes=[("S", True), ("M", False)], categories=JACKETS)
+    b = product(
+        "b", 300, regular=600, min30=350, brand="2", sizes=[("M", True)], categories=DRESSES
+    )
+    c = product("c", 900, regular=1000, sizes=[("L", True)], categories=JACKETS)
+    d = product("d", 50, regular=100, brand="3", sizes=[("ONE", True)], categories=CANDLES)
     factory = factory_of(client)
     seed_run(
         factory, SITE, [(Gender.MEN, [a, c]), (Gender.WOMEN, [b, c]), (Gender.HOME, [d])], tree=tree
     )
     client.put(f"/api/favorites/{ids(client)['a']}")
-    a2 = product("a", 80, regular=400, sizes=[("S", True), ("M", False)])
-    e = product("e", 200, regular=1000, brand="2", sizes=[("S", True)])
+    a2 = product("a", 80, regular=400, sizes=[("S", True), ("M", False)], categories=JACKETS)
+    e = product("e", 200, regular=1000, brand="2", sizes=[("S", True)], categories=JACKETS)
     seed_run(factory, SITE, [(Gender.MEN, [a2, c, e]), (Gender.WOMEN, [b, c])], tree=tree)
     return client
 
@@ -128,11 +138,29 @@ def test_filters(seeded: TestClient, params: dict[str, Any], expected: list[str]
     assert sorted(names(seeded, **params)) == expected
 
 
-def test_category_filter_includes_descendants(seeded: TestClient) -> None:
+def test_categories_are_the_shared_tree(seeded: TestClient) -> None:
     facets = seeded.get("/api/facets").json()
-    root = next(c for c in facets["categories"] if c["name"] == "Root")
 
-    assert len(names(seeded, category=root["id"])) == 5
+    assert [(c["id"], c["parent_id"], c["count"]) for c in facets["categories"]] == [
+        ("clothing", None, 4),
+        ("clothing.jackets", "clothing", 3),
+        ("clothing.dresses", "clothing", 1),
+        ("home", None, 1),
+        ("home.fragrance", "home", 1),
+    ]
+    assert facets["categories"][1]["name"] == "Jackets"
+
+
+def test_category_filter_matches_a_group_and_a_leaf(seeded: TestClient) -> None:
+    assert sorted(names(seeded, category="clothing")) == ["a", "b", "c", "e"]
+    assert sorted(names(seeded, category="clothing.jackets")) == ["a", "c", "e"]
+    assert sorted(names(seeded, category=["clothing.dresses", "home"])) == ["b", "d"]
+
+
+def test_unknown_or_malformed_categories(seeded: TestClient) -> None:
+    assert names(seeded, category="clothing.unicorns") == []
+    response = seeded.get("/api/products", params={"category": "1; drop"})
+    assert response.status_code == 422
 
 
 def test_my_sizes(seeded: TestClient) -> None:
@@ -146,14 +174,13 @@ def test_my_sizes(seeded: TestClient) -> None:
 def test_facets_combine_with_every_filter(seeded: TestClient) -> None:
     """Regression: EXISTS filters on tables the facet query joins itself (sizes, categories)."""
     seeded.put("/api/settings", json={"my_sizes": ["M", "L"]})
-    root = next(c for c in seeded.get("/api/facets").json()["categories"] if c["name"] == "Root")
-
-    for params in (
+    cases: tuple[dict[str, str | bool], ...] = (
         {"my_sizes": True},
         {"size": "S"},
-        {"category": root["id"]},
-        {"my_sizes": True, "size": "M", "category": root["id"], "flags": "favorite"},
-    ):
+        {"category": "clothing"},
+        {"my_sizes": True, "size": "M", "category": "clothing.jackets", "flags": "favorite"},
+    )
+    for params in cases:
         response = seeded.get("/api/facets", params=params)
         assert response.status_code == 200, (params, response.text)
 
@@ -232,14 +259,13 @@ def test_facets_ignore_their_own_filter(seeded: TestClient) -> None:
     assert facets["discount"] == {"min": 50, "max": 80}
 
 
-def test_light_facets_skip_categories_and_sizes(seeded: TestClient) -> None:
+def test_light_facets_skip_sizes(seeded: TestClient) -> None:
     light = seeded.get("/api/facets", params={"heavy": False}).json()
     full = seeded.get("/api/facets").json()
 
-    assert light["categories"] is None
     assert light["sizes"] is None
-    assert {k: v for k, v in light.items() if k not in ("categories", "sizes")} == {
-        k: v for k, v in full.items() if k not in ("categories", "sizes")
+    assert {k: v for k, v in light.items() if k != "sizes"} == {
+        k: v for k, v in full.items() if k != "sizes"
     }
     assert full["categories"]
     assert full["sizes"]
@@ -286,8 +312,8 @@ def test_product_detail(seeded: TestClient) -> None:
     assert [h["price"] for h in detail["price_history"]] == [100, 80]
     assert detail["category_paths"] == [
         [
-            {"id": detail["category_paths"][0][0]["id"], "name": "Root"},
-            {"id": detail["category_paths"][0][1]["id"], "name": "Leaf"},
+            {"id": detail["category_paths"][0][0]["id"], "name": "Одяг"},
+            {"id": detail["category_paths"][0][1]["id"], "name": "Куртки"},
         ]
     ]
     assert detail["gallery"][0]["thumb"].endswith("a_F2.jpg?v=1")

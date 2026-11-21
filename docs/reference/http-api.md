@@ -17,7 +17,7 @@ The API serves the UI; it is also handy for scripts on the same machine. It list
 |---|---|---|
 | `site` | string[] | shop codes, e.g. `prm`; an unknown code matches nothing |
 | `gender` | string[] | `men`, `women`, `home`, `kids` (matches any; unisex items match both men and women) |
-| `category` | int[] | category id at any level; an item matches if it is linked to it or to a descendant |
+| `category` | string[] | slugs of the shared category tree: a group (`clothing`) matches all of its leaves, a leaf (`clothing.jackets`) only itself |
 | `brand` | int[] | brand ids |
 | `size` | string[] | size labels that must be **in stock** |
 | `my_sizes` | bool | only items with one of the saved sizes in stock (ignored while no sizes are saved) |
@@ -66,14 +66,14 @@ Takes the same filters as `/api/products` (no sort or paging) plus `heavy`. Each
 
 | Parameter | Type | Description |
 |---|---|---|
-| `heavy` | bool | default `true`. `false` skips the category and size counts (the slow part on a large catalog); they come back as `null` |
+| `heavy` | bool | default `true`. `false` skips the size counts (the slow part on a large catalog); they come back as `null` |
 
 ```json
 {
   "total": 17577,
   "sites": [{"value": "prm", "label": "PRM", "count": 17577}],
   "genders": [{"value": "men", "label": "Men", "count": 10674}, "... women, home, kids (always all four)"],
-  "categories": [{"id": 3, "name": "<category>", "parent_id": 2, "depth": 1, "count": 9000}],
+  "categories": [{"id": "clothing.jackets", "name": "Jackets", "parent_id": "clothing", "depth": 1, "count": 9000}],
   "brands": [{"id": 5, "name": "<brand>", "count": 120}],
   "sizes": [{"label": "M", "count": 6183}],
   "price": {"min": 269, "max": 141899},
@@ -81,7 +81,7 @@ Takes the same filters as `/api/products` (no sort or paging) plus `heavy`. Each
 }
 ```
 
-Order: categories by depth then name; brands and sizes by count, then name or label.
+Order: categories in the order of the shared tree (groups followed by their leaves, only those with items; counts of a group include its leaves); brands and sizes by count, then name or label.
 
 ### `GET /api/products/{id}`
 
@@ -90,7 +90,7 @@ Order: categories by depth then name; brands and sizes by count, then name or la
 | Field | Meaning |
 |---|---|
 | `gallery` | images (thumb + full) |
-| `category_paths` | one root-to-leaf path per most specific category (unisex items usually have one path per gender tree) |
+| `category_paths` | the shop's own categories: one root-to-leaf path per most specific category (unisex items usually have one path per gender tree) |
 | `size_details` | sizes with the shop's `availability` value and their `variation_id` (unique per item; labels may repeat) |
 | `price_history` | `[{observed_at, price, price_regular, price_min30, discount_pct}]`, oldest first, one point per change |
 | `last_seen_at` | when a run last saw the item |

@@ -63,14 +63,14 @@ Why these: [ADR-0001](../decisions/0001-tech-stack.md).
 
 ## Performance
 
-The catalog stays fast at about 200,000 items (p95 under 200 ms for lists and filters). Measured on a real two-shop catalog of 160,600 items: default list 18 ms, filtered lists 12 to 108 ms, item detail 6 ms, cached facets 6 ms, uncached basic facets 74 ms, uncached category and size counts about 0.9 s.
+The catalog stays fast at about 200,000 items (p95 under 200 ms for lists and filters). Measured on a real two-shop catalog of 160,600 items: default list 18 ms, filtered lists 12 to 108 ms, item detail 6 ms, cached facets 6 ms, uncached basic facets 74 ms, uncached category and size counts about 0.9 s. On five shops and 242,300 items (2026-11-21): default list 18 ms, category filter 16 ms, uncached light facets (with the shared categories) 115 ms, uncached size counts about 0.7 s.
 
 The design rules behind these numbers, to keep when changing queries:
 
 - Every sort and every cheap facet has an index led by `is_active`.
 - Product pages use a deferred join: sort narrow rows to get a page of ids, then load the full rows for those ids only.
 - The New and Cheaper filters are resolved to id lists first, so SQLite does not walk the discount index looking for rare matches.
-- Facets come in two requests: `heavy=false` returns the cheap ones (shops, genders, brands, price and discount ranges) at list speed, and the full request adds category and size counts. The UI asks for both in parallel.
-- Facets are cached in the API process, keyed by database, query and a data version (last finished run, favorites, saved sizes). The cache is warmed at startup and after runs started from the app.
+- Facets come in two requests: `heavy=false` returns the cheap ones (shops, genders, shared categories, brands, price and discount ranges) at list speed, and the full request adds the size counts. The UI asks for both in parallel.
+- Facets are cached in the API process, keyed by database, query and a data version (last finished run, favorites, saved sizes, the last recategorization). The cache is warmed at startup and after runs started from the app.
 - `ANALYZE` runs after every merged run and after any applied migration.
 - SQLite settings: WAL, a 64 MB page cache, 256 MB memory map, temporary storage in memory.

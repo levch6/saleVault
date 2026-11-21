@@ -9,6 +9,7 @@ from alembic.migration import MigrationContext
 from alembic.script import ScriptDirectory
 from sqlalchemy import Engine
 
+from salevault.db.categorize import ensure_categorized
 from salevault.db.maintenance import backup
 
 log = logging.getLogger(__name__)
@@ -34,7 +35,8 @@ def upgrade(engine: Engine, revision: str = "head") -> None:
     and SQLite then picks poor plans: a 200k catalog page went from 14 ms to 280 ms).
 
     An existing database is backed up first: favorites and the price history cannot be
-    scraped again if a migration goes wrong.
+    scraped again if a migration goes wrong. Products are categorized again when the shared
+    category rules changed.
     """
     config = alembic_config(engine)
     before = current_revision(engine)
@@ -50,6 +52,8 @@ def upgrade(engine: Engine, revision: str = "head") -> None:
     if current_revision(engine) != before:
         with engine.begin() as connection:
             connection.exec_driver_sql("ANALYZE")
+    if revision == "head":
+        ensure_categorized(engine)
 
 
 def downgrade(engine: Engine, revision: str) -> None:

@@ -96,7 +96,7 @@ export function FilterSidebar({
   search: CatalogSearch
   /** Cheap facets (heavy=false). */
   facets: Facets | undefined
-  /** Full facets: categories and sizes come from here once ready. */
+  /** Full facets: sizes come from here once ready. */
   detail: Facets | undefined
   onChange: OnChange
 }) {
@@ -184,11 +184,9 @@ export function FilterSidebar({
         ))}
       </Section>
 
-      {detail?.categories ? (
-        <CategorySection search={search} categories={detail.categories} onChange={onChange} />
-      ) : (
-        <SectionLoading title="Category" />
-      )}
+      {facets.categories.length ? (
+        <CategorySection search={search} categories={facets.categories} onChange={onChange} />
+      ) : null}
       <BrandSection search={search} facets={facets} onChange={onChange} />
       {detail?.sizes ? (
         <SizeSection search={search} sizes={detail.sizes} onChange={onChange} />
@@ -292,7 +290,7 @@ function CategorySection({
   )
 }
 
-function containsSelected(node: TreeNode, selected: Set<number>): boolean {
+function containsSelected(node: TreeNode, selected: Set<string>): boolean {
   return node.children.some((c) => selected.has(c.category.id) || containsSelected(c, selected))
 }
 
@@ -302,8 +300,8 @@ function CategoryNode({
   onToggle,
 }: {
   node: TreeNode
-  selected: Set<number>
-  onToggle: (id: number) => void
+  selected: Set<string>
+  onToggle: (id: string) => void
 }) {
   const [open, setOpen] = useState(() => containsSelected(node, selected))
   const { category, children } = node

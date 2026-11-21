@@ -147,6 +147,7 @@ class Product(Base):
         Index(None, "is_active", "first_seen_at"),
         Index(None, "is_active", "brand_id"),
         Index(None, "is_active", "gender_mask"),
+        Index(None, "is_active", "category_slug"),
         Index(None, "site_id", "is_active", "discount_pct"),
         Index(None, "brand_id"),
         Index(None, "first_seen_run_id"),
@@ -162,6 +163,8 @@ class Product(Base):
     subtitle: Mapped[str | None] = mapped_column(String(512))
     color: Mapped[str | None] = mapped_column(String(128))
     gender_mask: Mapped[int] = mapped_column(default=0)
+    category_slug: Mapped[str] = mapped_column(String(64), default="other", server_default="other")
+    """The product's leaf in the shared category tree (`domain/taxonomy.py`)."""
     image_name: Mapped[str | None] = mapped_column(String(255))
     image_version: Mapped[str | None] = mapped_column(String(64))
     gallery_json: Mapped[str] = mapped_column(Text, default="[]")

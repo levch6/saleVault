@@ -98,6 +98,10 @@ runs *args:
 db-upgrade:
     cd {{ backend }} && uv run salevault db upgrade
 
+# Put every product in the shared category tree again and show the coverage per shop
+recategorize:
+    cd {{ backend }} && uv run salevault db recategorize
+
 # Build the frontend into frontend/dist
 build:
     cd {{ frontend }} && pnpm build

@@ -11,6 +11,8 @@ MAX_ID = 2**63 - 1
 MAX_PRICE = 100_000_000
 """Whole currency units; far above any real price and far below an integer overflow."""
 Id = Annotated[int, Field(ge=1, le=MAX_ID)]
+CategorySlug = Annotated[str, Field(pattern=r"^[a-z]+(\.[a-z]+)?$", max_length=64)]
+"""A group (`clothing`) or a leaf (`clothing.jackets`) of the shared category tree."""
 
 
 GenderCode = Literal["men", "women", "home", "kids"]
@@ -40,8 +42,10 @@ class CatalogQuery(BaseModel):
 
     site: list[str] = Field(default_factory=list, max_length=20, description="Site codes, e.g. prm")
     gender: list[GenderCode] = Field(default_factory=list, max_length=4)
-    category: list[Id] = Field(
-        default_factory=list, max_length=200, description="Category ids, any level"
+    category: list[CategorySlug] = Field(
+        default_factory=list,
+        max_length=100,
+        description="Shared categories: a group matches all of its leaves",
     )
     brand: list[Id] = Field(default_factory=list, max_length=500)
     size: list[str] = Field(
@@ -60,7 +64,7 @@ class CatalogQuery(BaseModel):
 class FacetsQuery(CatalogQuery):
     heavy: bool = Field(
         True,
-        description="Also count categories and sizes (the slow part on big catalogs). "
+        description="Also count sizes (the slow part on big catalogs). "
         "The UI asks for heavy=false first so the cheap facets show up at once.",
     )
 
@@ -165,9 +169,9 @@ class BrandFacet(_Out):
 
 
 class CategoryFacet(_Out):
-    id: int
+    id: str = Field(description="Slug of the shared category tree")
     name: str
-    parent_id: int | None
+    parent_id: str | None
     depth: int
     count: int
 
@@ -186,8 +190,8 @@ class Facets(_Out):
     total: int
     sites: list[ValueCount]
     genders: list[ValueCount]
-    categories: list[CategoryFacet] | None
-    """None when not requested (heavy=false)."""
+    categories: list[CategoryFacet]
+    """The shared category tree in its own order, only nodes with items."""
     brands: list[BrandFacet]
     sizes: list[SizeFacet] | None
     price: Range

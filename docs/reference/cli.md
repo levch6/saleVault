@@ -15,6 +15,7 @@ Run from the repository root. `just` without arguments lists them.
 | `just backup` | copy the database to `data/backups/` (keeps 5) |
 | `just vacuum` | compact the database file |
 | `just db-upgrade` | apply pending migrations (done automatically on start) |
+| `just recategorize` | put every product in the shared category tree again and show how well each shop is covered (done automatically on start when the rules changed) |
 | `just shortcut` | Windows only: put a saleVault shortcut with the app icon on the desktop |
 | `just build` | build the UI into `frontend/dist` |
 | `just check` | `just lint` + `just test`; what CI runs |
@@ -64,6 +65,7 @@ Recent runs, newest first (default 20), with status, duration, items and catalog
 | Command | Meaning |
 |---|---|
 | `db upgrade` | apply pending migrations |
+| `db recategorize` | categorize every product again with the current rules and print the share of each shop's active items in a specific category, a group's catch-all and Other |
 | `db backup [--keep N]` | consistent copy into `data/backups/`, keeping the newest N (default 5) |
 | `db vacuum` | compact the database file |
 

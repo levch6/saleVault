@@ -52,6 +52,14 @@ describe('validateCatalogSearch', () => {
     ).toEqual({})
   })
 
+  it('keeps category slugs and drops old numeric ids', () => {
+    expect(
+      validateCatalogSearch({
+        category: ['clothing', 'clothing.jackets', 12, 'Clothing', 'a.b.c'],
+      }),
+    ).toEqual({ category: ['clothing', 'clothing.jackets'] })
+  })
+
   it('omits the default sort so URLs stay short', () => {
     expect(validateCatalogSearch({ sort: 'discount_desc' })).toEqual({})
   })
