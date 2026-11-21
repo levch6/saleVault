@@ -6,11 +6,13 @@ import random
 from collections.abc import Callable
 from contextlib import AbstractAsyncContextManager
 from dataclasses import dataclass
+from pathlib import Path
 
 from sqlalchemy.orm import Session, sessionmaker
 
 from salevault.db.engine import analyze, session_scope
 from salevault.db.finalize import RunStats, finalize_run
+from salevault.db.maintenance import compact_if_bloated
 from salevault.db.runs import DbRunSink, RunRepository
 from salevault.scraper.base import SiteAdapter, SiteInfo
 from salevault.scraper.errors import ScrapeError
@@ -92,8 +94,11 @@ async def execute_run(
 
     try:
         analyze(factory)
-    except Exception as exc:  # statistics are an optimization, never a reason to fail a run
-        log.warning("ANALYZE after run #%d failed: %s", run_id, exc)
+        database = _database_path(factory)
+        if database is not None:
+            compact_if_bloated(database)
+    except Exception as exc:  # housekeeping is an optimization, never a reason to fail a run
+        log.warning("Housekeeping after run #%d failed: %s", run_id, exc)
 
     duration = (result.finished_at - result.started_at).total_seconds()
     repo.finish(
@@ -109,3 +114,9 @@ async def execute_run(
         },
     )
     return RunOutcome(run_id=run_id, status=status, result=result, stats=stats)
+
+
+def _database_path(factory: sessionmaker[Session]) -> Path | None:
+    with factory() as session:
+        database = session.get_bind().engine.url.database
+    return Path(database) if database and database != ":memory:" else None
